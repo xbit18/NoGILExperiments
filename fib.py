@@ -3,7 +3,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 
-print(f"NoGil: {getattr(sys.flags, 'nogil', False)}")
+#print(f"NoGil: {getattr(sys.flags, 'nogil', False)}")
 
 def fib(n):
     if n < 2: return 1
