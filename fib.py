@@ -1,10 +1,11 @@
 import sys
+import multiprocessing as mp
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 
 #print(f"NoGil: {getattr(sys.flags, 'nogil', False)}")
-
+#print(f"Cores: {mp.cpu_count()}")
 def fib(n):
     if n < 2: return 1
     return fib(n-1) + fib(n-2)
