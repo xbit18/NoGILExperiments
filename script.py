@@ -40,6 +40,8 @@ def check_versions(versions):
         if not os.path.exists(f"{os.environ['HOME']}/.pyenv/versions/{version}"):
             res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True)
         res2 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install pyperformance", shell=True, capture_output=True)
+        res3 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install telegram_send",
+                              shell=True, capture_output=True)
 
 
 # Test single thread
