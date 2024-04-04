@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Setup steps
 # Importa librerie
 import multiprocessing
@@ -35,27 +37,24 @@ def check_versions(versions):
     temp = versions.copy()
     for version in temp.keys():
         if not os.path.exists(f"{os.environ['HOME']}/.pyenv/versions/{version}"):
-            res = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True)
-            if res.returncode != 0:
-                versions.pop(version)
+            res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True)
+        res2 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install pyperformance", shell=True, capture_output=True)
 
 
 # Test single thread
-def single_thread(versions, memory=False):
+def single_thread(versions):
+    #print("\n###### Tuning system for tests ######")
     subprocess.run("pyperf system tune", shell=True)
 
     for version, done in versions.items():
         if done[0]:
             continue
 
-        command = f"pyperformance run --python={os.environ['HOME']}/.pyenv/versions/{version}/bin/python"
-        if memory:
-            command += " -m"
-        command += f" -o ./pyperf_res/{version}.json"
-
+        command = f"pyperformance run --python={os.environ['HOME']}/.pyenv/versions/{version}/bin/python -o ./pyperf_res/{version}.json"
         subprocess.run(
             command,
             shell=True)
+
         versions[version][0] = True
         with open("./versions.json", "w") as f:
             versions_json = json.dumps(versions, indent=4)
@@ -64,6 +63,25 @@ def single_thread(versions, memory=False):
     subprocess.run("pyperf system reset", shell=True)
 
 
+def memory_single_thread(versions):
+    # print("\n###### Tuning system for tests ######")
+    subprocess.run("pyperf system tune", shell=True)
+
+    for version, done in versions.items():
+        if done[1]:
+            continue
+
+        command = f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o ./pyperf_res/memory/{version}.json"
+        subprocess.run(
+            command,
+            shell=True)
+
+        versions[version][1] = True
+        with open("./versions.json", "w") as f:
+            versions_json = json.dumps(versions, indent=4)
+            f.write(versions_json)
+
+    subprocess.run("pyperf system reset", shell=True)
 
 # Test multi thread
 # Variabili per definire quanti thread e quanti loop per thread
@@ -96,7 +114,7 @@ def multi_thread(versions):
 
     times = {}
     for version, done in versions.items():
-        if done[1]:
+        if done[2]:
             continue
 
         # Se non è nogil calcola i tempi normalmente
@@ -114,7 +132,7 @@ def multi_thread(versions):
                 times[f"{version_str}"] = tms
                 save_res(version, times)
 
-        versions[version][1] = True
+        versions[version][2] = True
         with open("./versions.json", "w") as f:
             versions_json = json.dumps(versions, indent=4)
             f.write(versions_json)
@@ -314,12 +332,12 @@ def analyse_multi_thread():
 
 def main():
     versions = {
-        "3.9.10": [False, False],
-        "nogil-3.9.10-1": [False, False],
-        "3.9.18": [False, False],
-        "3.10.13": [False, False],
-        "3.11.8": [False, False],
-        "3.12.2": [False, False],
+        "3.9.10": [False, False, False],
+        "nogil-3.9.10-1": [False, False, False],
+        "3.9.18": [False, False, False],
+        "3.10.13": [False, False, False],
+        "3.11.8": [False, False, False],
+        "3.12.2": [False, False, False],
     }
 
     if not os.path.exists("./images"):
@@ -331,12 +349,12 @@ def main():
     check_file(versions)
     check_versions(versions)
 
-    single_thread(versions)
-    single_thread(versions, memory=True)
-    multi_thread(versions)
-    analyse_single_thread()
-    analyse_memory_single_thread()
-    analyse_multi_thread()
+    #single_thread(versions)
+    memory_single_thread(versions)
+    #multi_thread(versions)
+    #analyse_single_thread()
+    #analyse_memory_single_thread()
+    #analyse_multi_thread()
 
 if __name__ == '__main__':
     main()
