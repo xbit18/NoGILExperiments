@@ -44,7 +44,7 @@ def check_versions(versions):
 # Test single thread
 def single_thread(versions):
     #print("\n###### Tuning system for tests ######")
-    subprocess.run("pyperf system tune", shell=True)
+    subprocess.run(f"sudo {os.environ['HOME']}/tune.sh", shell=True)
 
     for version, done in versions.items():
         if done[0]:
@@ -65,7 +65,7 @@ def single_thread(versions):
 
 def memory_single_thread(versions):
     # print("\n###### Tuning system for tests ######")
-    subprocess.run("pyperf system tune", shell=True)
+    subprocess.run(f"sudo {os.environ['HOME']}/tune.sh", shell=True)
 
     for version, done in versions.items():
         if done[1]:
