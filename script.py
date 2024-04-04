@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import asyncio
 # Setup steps
 # Importa librerie
 import multiprocessing
@@ -12,6 +12,7 @@ import json
 from pprint import pprint as pp
 import matplotlib.pyplot as plt
 import subprocess
+import telegram_send as tel
 
 # Installa versioni di python necessarie
 
@@ -63,9 +64,14 @@ def single_thread(versions):
     subprocess.run("pyperf system reset", shell=True)
 
 
+def send_message(message):
+    send = tel.send(messages=[message], parse_mode="Markdown",
+                    disable_web_page_preview=True, conf='./telegram.conf')
+    asyncio.run(send)
+
+
 def memory_single_thread(versions):
     # print("\n###### Tuning system for tests ######")
-    #subprocess.run(f"echo '090914' | sudo -S {os.environ['HOME']}/tune.sh", shell=True)
 
     for version, done in versions.items():
         if done[1]:
@@ -76,12 +82,12 @@ def memory_single_thread(versions):
             command,
             shell=True)
 
+        send_message(f"{version} done")
+
         versions[version][1] = True
         with open("./versions.json", "w") as f:
             versions_json = json.dumps(versions, indent=4)
             f.write(versions_json)
-
-    subprocess.run("pyperf system reset", shell=True)
 
 # Test multi thread
 # Variabili per definire quanti thread e quanti loop per thread
