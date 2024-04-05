@@ -18,15 +18,19 @@ import telegram_send as tel
 
 
 def check_file(versions):
+    print("Checking if versions.json file exists")
     if os.path.exists("./versions.json"):
         with open("./versions.json","r") as f:
-            versions = json.load(f)
-            print("loaded")
+            new_versions = json.load(f)
+            print("File exists - Loaded")
+            #pp(versions)
     else:
         with open("./versions.json","w") as f:
             versions_json = json.dumps(versions, indent=4)
+            new_versions = versions
             f.write(versions_json)
-            print("dumped")
+            print("File does not exist - Dumped")
+    return new_versions
 
 
 # Metodo che controlla che ogni versione specificata sia installata sul sistema.
@@ -35,13 +39,21 @@ def check_file(versions):
 
 
 def check_versions(versions):
+    print("Checking all versions are installed along with required packages")
     temp = versions.copy()
     for version in temp.keys():
+
         if not os.path.exists(f"{os.environ['HOME']}/.pyenv/versions/{version}"):
             res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True)
-        res2 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install pyperformance", shell=True, capture_output=True)
-        res3 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install telegram_send",
-                              shell=True, capture_output=True)
+        
+        checking_pyperformance = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip list | grep 'pyperformance'", shell=True, capture_output=True)
+        if checking_pyperformance.returncode == 1:
+            res2 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install pyperformance", shell=True, capture_output=True)
+        
+        checking_telegram_send = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip list | grep 'telegram_send'", shell=True, capture_output=True)
+        if checking_telegram_send.returncode == 1:
+            res3 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install telegram_send",
+                                shell=True, capture_output=True)
 
 
 # Test single thread
@@ -73,13 +85,17 @@ def send_message(message):
 
 
 def memory_single_thread(versions):
-    # print("\n###### Tuning system for tests ######")
 
     for version, done in versions.items():
         if done[1]:
             continue
+        
+        send_message(f"{version} started")
 
-        command = f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o ./pyperf_res/memory/{version}.json"
+        command = f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {os.environ['HOME']}/NoGILExperiments/pyperf_res/memory/{version}.json"
+        if version == "nogil-3.9.10-1":
+            command += " --benchmarks=-gc_traversal"
+        
         subprocess.run(
             command,
             shell=True)
@@ -228,7 +244,7 @@ def analyse_single_thread():
 
 
 def analyse_memory_single_thread():
-    path = './pyperf_res/memory'
+    path = './pyperf_res/memory/'
     files_to_process = []
     for file_name in os.listdir(path):
         if file_name.endswith('.json'):
@@ -244,13 +260,12 @@ def analyse_memory_single_thread():
         processed_files[f"{file.replace('.json', '')}_processed.json"] = benchmarks
 
     columns = {
-        'py310_processed.json': '3.10.13',
-        'py311_processed.json': '3.11.8',
-        'py312_processed.json': '3.12.2',
-        'py3120_processed.json': '3.12.0',
-        'py39_processed.json': '3.9.18',
-        'py3910_processed.json': '3.9.10',
-        'pynogil_processed.json': 'nogil-3.9.10'
+        '3.10.13_processed.json': '3.10.13',
+        '3.11.8_processed.json': '3.11.8',
+        '3.12.2_processed.json': '3.12.2',
+        '3.9.18_processed.json': '3.9.18',
+        '3.9.10_processed.json': '3.9.10',
+        'nogil-3.9.10-1_processed.json': 'nogil-3.9.10'
     }
 
     # Get complete list of benchmarks
@@ -280,7 +295,7 @@ def analyse_memory_single_thread():
         df[columns[file].replace('.json', '')] = all_mems
         
     mems_df = pd.DataFrame(df)
-    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10', '3.9.18', '3.10.13', '3.11.8', '3.12.0', '3.12.2']
+    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10', '3.9.18', '3.10.13', '3.11.8', '3.12.2']
     mems_df = mems_df[columns]
     mems_df_notnull = mems_df.dropna()
     mems_df_notnull.reset_index(inplace=True, drop=True)
@@ -299,7 +314,7 @@ def analyse_memory_single_thread():
     for i in range(len(labels)):
         plt.bar(i, mems[i], color=colors.pop())
     plt.xlabel("Python Versions")
-    plt.ylabel("Avg Execution Time")
+    plt.ylabel("Avg Memory Usage (MB)")
     plt.legend(labels)
     ticks = [i for i in range(len(mems))]
     plt.xticks(ticks, labels=labels)
@@ -354,14 +369,17 @@ def main():
     if not os.path.exists("./pyperf_res"):
         os.makedirs("./pyperf_res")
 
-    check_file(versions)
-    check_versions(versions)
+    if not os.path.exists("./pyperf_res/memory"):
+        os.makedirs("./pyperf_res/memory")
+
+    #versions = check_file(versions)
+    #check_versions(versions)
 
     #single_thread(versions)
-    memory_single_thread(versions)
+    #memory_single_thread(versions)
     #multi_thread(versions)
     #analyse_single_thread()
-    #analyse_memory_single_thread()
+    analyse_memory_single_thread()
     #analyse_multi_thread()
 
 if __name__ == '__main__':

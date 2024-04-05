@@ -1,32 +1,32 @@
 {
     "3.9.10": [
         false,
-        false,
+        true,
         false
     ],
     "nogil-3.9.10-1": [
         false,
-        false,
+        true,
         false
     ],
     "3.9.18": [
         false,
-        false,
+        true,
         false
     ],
     "3.10.13": [
         false,
-        false,
+        true,
         false
     ],
     "3.11.8": [
         false,
-        false,
+        true,
         false
     ],
     "3.12.2": [
         false,
-        false,
+        true,
         false
     ]
 }
