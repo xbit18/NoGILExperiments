@@ -6,4 +6,4 @@ services:
     privileged: true
     build: .    
     volumes:
-      - '/Users/giacomo/NoGILExperiments:/home/python_user/NoGILExperiments'  
+      - '.:/root/NoGILExperiments'  

@@ -10,8 +10,7 @@ import pandas as pd
 import numpy as np
 import json
 from pprint import pprint as pp
-#os.environ['MPLCONFIGDIR'] = os.getcwd() + "/configs/"
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import subprocess
 import telegram_send as tel
 
@@ -61,8 +60,8 @@ def check_versions(versions):
 
 # Test single thread
 def single_thread(versions):
-    #print("\n###### Tuning system for tests ######")
-    #subprocess.run(f"echo '090914' | sudo -S {os.environ['HOME']}/NoGILExperiments/tune.sh", shell=True)
+    
+    subprocess.run(f"pyperf system tune", shell=True)
 
     for version, done in versions.items():
         if done[0]:
@@ -81,7 +80,7 @@ def single_thread(versions):
             versions_json = json.dumps(versions, indent=4)
             f.write(versions_json)
 
-    #subprocess.run("pyperf system reset", shell=True)
+    subprocess.run("pyperf system reset", shell=True)
 
 
 def send_message(message):
@@ -91,6 +90,7 @@ def send_message(message):
 
 
 def memory_single_thread(versions):
+    subprocess.run(f"pyperf system tune", shell=True)
 
     for version, done in versions.items():
         if done[1]:
@@ -112,6 +112,9 @@ def memory_single_thread(versions):
         with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json", "w") as f:
             versions_json = json.dumps(versions, indent=4)
             f.write(versions_json)
+
+    subprocess.run(f"pyperf system reset", shell=True)
+
 
 # Test multi thread
 # Variabili per definire quanti thread e quanti loop per thread
@@ -247,7 +250,7 @@ def analyse_single_thread():
     plt.legend(labels)
     ticks = [i for i in range(len(times))]
     plt.xticks(ticks, labels=labels)
-    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images/confronto_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images2/confronto_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 
 def analyse_memory_single_thread():
@@ -325,10 +328,10 @@ def analyse_memory_single_thread():
     plt.legend(labels)
     ticks = [i for i in range(len(mems))]
     plt.xticks(ticks, labels=labels)
-    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images/confronto_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images2/confronto_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 def analyse_multi_thread():
-    arr = np.genfromtxt('times.csv',delimiter=',',dtype=str)
+    arr = np.genfromtxt(f'{os.environ['HOME']}/NoGILExperiments/times.csv', delimiter=',',dtype=str)
     df = pd.DataFrame(arr.T)
     new_header = df.iloc[0]  # grab the first row for the header
     df = df[1:]  # take the data less the header row
@@ -357,7 +360,7 @@ def analyse_multi_thread():
     ticks.append(multiprocessing.cpu_count())
     ticks.sort()
     plt.xticks(ticks)
-    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images/confronto_multi_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images2/confronto_multi_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 
 def main():
@@ -379,14 +382,13 @@ def main():
     if not os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res/memory"):
         os.makedirs(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res/memory")
 
-    versions = check_file(versions)
-    check_versions(versions)
+    #versions = check_file(versions)
+    #check_versions(versions)
     
     single_thread(versions)
-    memory_single_thread(versions)
-    multi_thread(versions)
+    #memory_single_thread(versions)
+    #multi_thread(versions)
 
-    # Disattivati perchè matplotlib non funziona
     #analyse_single_thread()
     #analyse_memory_single_thread()
     #analyse_multi_thread()
