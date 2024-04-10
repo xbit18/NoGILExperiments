@@ -1,0 +1,9 @@
+version: '1.0'
+
+services:
+  nogil:
+    image: xbit18/python_performance:v0
+    privileged: true
+    build: .    
+    volumes:
+      - '/Users/giacomo/NoGILExperiments:/home/python_user/NoGILExperiments'  

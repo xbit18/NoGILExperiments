@@ -10,22 +10,25 @@ import pandas as pd
 import numpy as np
 import json
 from pprint import pprint as pp
-import matplotlib.pyplot as plt
+#os.environ['MPLCONFIGDIR'] = os.getcwd() + "/configs/"
+#import matplotlib.pyplot as plt
 import subprocess
 import telegram_send as tel
+
+
 
 # Installa versioni di python necessarie
 
 
 def check_file(versions):
     print("Checking if versions.json file exists")
-    if os.path.exists("./versions.json"):
-        with open("./versions.json","r") as f:
+    if os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/versions.json"):
+        with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json","r") as f:
             new_versions = json.load(f)
             print("File exists - Loaded")
             #pp(versions)
     else:
-        with open("./versions.json","w") as f:
+        with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json","w") as f:
             versions_json = json.dumps(versions, indent=4)
             new_versions = versions
             f.write(versions_json)
@@ -43,44 +46,47 @@ def check_versions(versions):
     temp = versions.copy()
     for version in temp.keys():
 
-        if not os.path.exists(f"{os.environ['HOME']}/.pyenv/versions/{version}"):
+        if not os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}"):
             res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True)
         
-        checking_pyperformance = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip list | grep 'pyperformance'", shell=True, capture_output=True)
+        checking_pyperformance = subprocess.run(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pip list | grep 'pyperformance'", shell=True, capture_output=True)
         if checking_pyperformance.returncode == 1:
-            res2 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install pyperformance", shell=True, capture_output=True)
+            res2 = subprocess.run(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pip install pyperformance", shell=True, capture_output=True)
         
-        checking_telegram_send = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip list | grep 'telegram_send'", shell=True, capture_output=True)
+        checking_telegram_send = subprocess.run(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pip list | grep 'telegram_send'", shell=True, capture_output=True)
         if checking_telegram_send.returncode == 1:
-            res3 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install telegram_send",
+            res3 = subprocess.run(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pip install telegram_send",
                                 shell=True, capture_output=True)
 
 
 # Test single thread
 def single_thread(versions):
     #print("\n###### Tuning system for tests ######")
-    #subprocess.run(f"echo '090914' | sudo -S {os.environ['HOME']}/tune.sh", shell=True)
+    #subprocess.run(f"echo '090914' | sudo -S {os.environ['HOME']}/NoGILExperiments/tune.sh", shell=True)
 
     for version, done in versions.items():
         if done[0]:
             continue
-
-        command = f"pyperformance run --python={os.environ['HOME']}/.pyenv/versions/{version}/bin/python -o ./pyperf_res/{version}.json"
+        
+        send_message(f"Single thread analyis for {version} started")
+        command = f"pyperformance run --python={os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -o {os.environ['HOME']}/NoGILExperiments/pyperf_res/{version}.json"
         subprocess.run(
             command,
             shell=True)
 
+        send_message(f"Done")
+
         versions[version][0] = True
-        with open("./versions.json", "w") as f:
+        with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json", "w") as f:
             versions_json = json.dumps(versions, indent=4)
             f.write(versions_json)
 
-    subprocess.run("pyperf system reset", shell=True)
+    #subprocess.run("pyperf system reset", shell=True)
 
 
 def send_message(message):
     send = tel.send(messages=[message], parse_mode="Markdown",
-                    disable_web_page_preview=True, conf='./telegram.conf')
+                    disable_web_page_preview=True, conf=f'{os.environ['HOME']}/NoGILExperiments/telegram.conf')
     asyncio.run(send)
 
 
@@ -90,9 +96,9 @@ def memory_single_thread(versions):
         if done[1]:
             continue
         
-        send_message(f"{version} started")
+        send_message(f"Single thread memory analyis for {version} started")
 
-        command = f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {os.environ['HOME']}/NoGILExperiments/pyperf_res/memory/{version}.json"
+        command = f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {os.environ['HOME']}/NoGILExperiments/NoGILExperiments/pyperf_res/memory/{version}.json"
         if version == "nogil-3.9.10-1":
             command += " --benchmarks=-gc_traversal"
         
@@ -100,10 +106,10 @@ def memory_single_thread(versions):
             command,
             shell=True)
 
-        send_message(f"{version} done")
+        send_message(f"Done")
 
         versions[version][1] = True
-        with open("./versions.json", "w") as f:
+        with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json", "w") as f:
             versions_json = json.dumps(versions, indent=4)
             f.write(versions_json)
 
@@ -138,6 +144,7 @@ def multi_thread(versions):
 
     times = {}
     for version, done in versions.items():
+        send_message(f"Multi thread analyis for {version} started")
         if done[2]:
             continue
 
@@ -155,15 +162,15 @@ def multi_thread(versions):
                 tms = exec_threads(version)
                 times[f"{version_str}"] = tms
                 save_res(version, times)
-
+        send_message(f"Done")
         versions[version][2] = True
-        with open("./versions.json", "w") as f:
+        with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json", "w") as f:
             versions_json = json.dumps(versions, indent=4)
             f.write(versions_json)
 
 
 def analyse_single_thread():
-    path = './pyperf_res/'
+    path = f'{os.environ['HOME']}/NoGILExperiments/pyperf_res/'
     files_to_process = []
     for file_name in os.listdir(path):
         if file_name.endswith('.json'):
@@ -240,11 +247,11 @@ def analyse_single_thread():
     plt.legend(labels)
     ticks = [i for i in range(len(times))]
     plt.xticks(ticks, labels=labels)
-    plt.savefig(f"./images/confronto_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images/confronto_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 
 def analyse_memory_single_thread():
-    path = './pyperf_res/memory/'
+    path = f'{os.environ['HOME']}/NoGILExperiments/pyperf_res/memory/'
     files_to_process = []
     for file_name in os.listdir(path):
         if file_name.endswith('.json'):
@@ -318,7 +325,7 @@ def analyse_memory_single_thread():
     plt.legend(labels)
     ticks = [i for i in range(len(mems))]
     plt.xticks(ticks, labels=labels)
-    plt.savefig(f"./images/confronto_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images/confronto_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 def analyse_multi_thread():
     arr = np.genfromtxt('times.csv',delimiter=',',dtype=str)
@@ -350,7 +357,7 @@ def analyse_multi_thread():
     ticks.append(multiprocessing.cpu_count())
     ticks.sort()
     plt.xticks(ticks)
-    plt.savefig("./images/confronto_multi_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images/confronto_multi_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 
 def main():
@@ -363,23 +370,25 @@ def main():
         "3.12.2": [False, False, False],
     }
 
-    if not os.path.exists("./images"):
-        os.makedirs("./images")
+    if not os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/images"):
+        os.makedirs(f"{os.environ['HOME']}/NoGILExperiments/images")
 
-    if not os.path.exists("./pyperf_res"):
-        os.makedirs("./pyperf_res")
+    if not os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res"):
+        os.makedirs(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res")
 
-    if not os.path.exists("./pyperf_res/memory"):
-        os.makedirs("./pyperf_res/memory")
+    if not os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res/memory"):
+        os.makedirs(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res/memory")
 
-    #versions = check_file(versions)
-    #check_versions(versions)
+    versions = check_file(versions)
+    check_versions(versions)
+    
+    single_thread(versions)
+    memory_single_thread(versions)
+    multi_thread(versions)
 
-    #single_thread(versions)
-    #memory_single_thread(versions)
-    #multi_thread(versions)
+    # Disattivati perchè matplotlib non funziona
     #analyse_single_thread()
-    analyse_memory_single_thread()
+    #analyse_memory_single_thread()
     #analyse_multi_thread()
 
 if __name__ == '__main__':
