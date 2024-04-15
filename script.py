@@ -12,12 +12,31 @@ import json
 from pprint import pprint as pp
 import matplotlib.pyplot as plt
 import subprocess
+import argparse
 import telegram_send as tel
+from datetime import datetime
+from pathlib import Path
 
 
+debug = False
+date_time_str = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
+results_path = "./pyperf_res/"
+THREADS = []
 
-# Installa versioni di python necessarie
+class SmartFormatter(argparse.HelpFormatter):
+    """
+    Class that implements a better formatter for the command line help text
+    """
 
+    def _split_lines(self, text, width):
+        """
+        Makes sure that every help string that starts with
+        'R|' is formatted so that '\n' is properly rendered
+        as a new line
+        """
+        if text.startswith('R|'):
+            return text[2:].splitlines()
+        return argparse.HelpFormatter._split_lines(self, text, width)
 
 def check_file(versions):
     print("Checking if versions.json file exists")
@@ -34,12 +53,14 @@ def check_file(versions):
             print("File does not exist - Dumped")
     return new_versions
 
+def send_message(message):
+    send = tel.send(messages=[message], parse_mode="Markdown",
+                    disable_web_page_preview=True, conf=f'{os.environ['HOME']}/NoGILExperiments/telegram.conf')
+    asyncio.run(send)
 
 # Metodo che controlla che ogni versione specificata sia installata sul sistema.
 # Se non lo è la installa, e se il processo di installazione fallisce skippa
 # quella versione rimuovendola dall'elenco di versioni da testare.
-
-
 def check_versions(versions):
     print("Checking all versions are installed along with required packages")
     temp = versions.copy()
@@ -57,10 +78,63 @@ def check_versions(versions):
             res3 = subprocess.run(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pip install telegram_send",
                                 shell=True, capture_output=True)
 
+def save_res(version, times, memories, path):
+    global debug
+    if debug:
+        return
+    
+    if times != {} and times is not None:
+        with open(f"{path}/times.csv", "a") as csv_file:
+                writer = csv.writer(csv_file, delimiter=',')
+                to_insert = []
+                to_insert.append(version)
+                to_insert.extend(times[version])
+                writer.writerow(to_insert)
+
+    if memories != {} and times is not None:
+        with open(f"{path}/memories.csv", "a") as csv_file:
+                writer = csv.writer(csv_file, delimiter=',')
+                to_insert = []
+                to_insert.append(version)
+                to_insert.extend(memories[version])
+                writer.writerow(to_insert)
+
+def update_versions(versions):
+    global debug
+    if debug:
+        return
+
+    with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json", "w") as f:
+        versions_json = json.dumps(versions, indent=4)
+        f.write(versions_json)
+
+def exec_threads(version, THREADS, LOOPS_PER_THREAD):
+    times = []
+    memories = []
+    for thread in THREADS:
+        print("Threads:", thread)
+        all_time=0
+        all_memory=0
+        for i in range(LOOPS_PER_THREAD):
+            output = subprocess.check_output(f"~/.pyenv/versions/{version}/bin/python3 fib.py {thread}", shell=True)
+            time, mem = output.decode(sys.stdout.encoding).replace('\n','').split(" ")
+            all_time += float(time)
+            all_memory += int(mem)
+        times.append(round(all_time/LOOPS_PER_THREAD, ndigits=3))
+        memories.append(round(all_memory/LOOPS_PER_THREAD, ndigits=3))
+    return times, memories
 
 # Test single thread
 def single_thread(versions):
-    
+    global date_time_str, debug, results_path
+    path=f"{results_path}{date_time_str}/single_thread"
+    if debug:
+        print(path)
+        return
+    Path(path).mkdir(parents=True, exist_ok=True)
+
+    print("\nStarting single thread analysis...")
+    print("\nTuning system...")
     subprocess.run(f"pyperf system tune", shell=True)
 
     for version, done in versions.items():
@@ -68,7 +142,8 @@ def single_thread(versions):
             continue
         
         send_message(f"Single thread analyis for {version} started")
-        command = f"pyperformance run --python={os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -o {os.environ['HOME']}/NoGILExperiments/pyperf_res/{version}.json"
+        
+        command = f"pyperformance run --python={os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -o {path}/{version}.json"
         subprocess.run(
             command,
             shell=True)
@@ -80,16 +155,75 @@ def single_thread(versions):
             versions_json = json.dumps(versions, indent=4)
             f.write(versions_json)
 
+    print("\nSingle thread analysis done. Resetting system...")
     subprocess.run("pyperf system reset", shell=True)
 
+# Test multi thread
+# Variabili per definire quanti thread e quanti loop per thread
+def multi_thread(versions):
+    global date_time_str, debug, THREADS, results_path
+    path=f"{results_path}{date_time_str}/multi_thread"
+    if debug:
+        print(path)
+        return
+    Path(path).mkdir(parents=True, exist_ok=True)
 
-def send_message(message):
-    send = tel.send(messages=[message], parse_mode="Markdown",
-                    disable_web_page_preview=True, conf=f'{os.environ['HOME']}/NoGILExperiments/telegram.conf')
-    asyncio.run(send)
+    print("\nStarting multi thread analysis...")
+    if os.environ.get('THREADS') is None:
+        print("\nTHREADS NUMBER NOT SPECIFIED\nAborting...")
+        return 
+    
+    if os.environ.get('ITERS') is None:
+        print("\nITERS NUMBER NOT SPECIFIED\nAborting...")
+        return 
 
+    LOOPS_PER_THREAD = int(os.environ['ITERS'])
 
+    times = {}
+    memories = {}
+    for version, done in versions.items():
+        
+        if done[2]:
+            continue
+        
+        print(f"\nCurrent version: {version}")
+        #send_message(f"Multi thread analyis for {version} started")
+        # Se non è nogil calcola i tempi normalmente
+        if version != "nogil-3.9.10-1":
+            res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD)
+            times[f"{version}"] = res_time
+            memories[f"{version}"] = res_mem
+            save_res(version, times, memories, path)
+
+        # Altrimenti calcolali sia con PYTHONGIL=0 che PYTHONGIL=1
+        else:
+            for val in [0, 1]:
+                os.environ["PYTHONGIL"] = str(val)
+                print(f"PYTHONGIL={os.environ.get('PYTHONGIL')}")
+                version_str = f"3.9.10-nogil_{val}"
+                res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD)
+                times[f"{version_str}"] = res_time
+                memories[f"{version_str}"] = res_mem
+                save_res(version_str, times, memories, path)
+        
+        #send_message(f"Done")
+
+        versions[version][2] = True
+        update_versions(versions)
+    
+    print("\nMulti thread analysis done.")
+
+# Test memoria multi thread
 def memory_single_thread(versions):
+    global date_time_str, debug, results_path
+    path=f"{results_path}{date_time_str}/memory_single_thread"
+    if debug:
+        print(path)
+        return
+    Path(path).mkdir(parents=True, exist_ok=True)
+
+    print("\nStarting single thread memory analysis...")
+    print("\nTuning system...")
     subprocess.run(f"pyperf system tune", shell=True)
 
     for version, done in versions.items():
@@ -98,7 +232,7 @@ def memory_single_thread(versions):
         
         send_message(f"Single thread memory analyis for {version} started")
 
-        command = f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {os.environ['HOME']}/NoGILExperiments/NoGILExperiments/pyperf_res/memory/{version}.json"
+        command = f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {path}/{version}.json"
         if version == "nogil-3.9.10-1":
             command += " --benchmarks=-gc_traversal"
         
@@ -109,79 +243,29 @@ def memory_single_thread(versions):
         send_message(f"Done")
 
         versions[version][1] = True
-        with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json", "w") as f:
-            versions_json = json.dumps(versions, indent=4)
-            f.write(versions_json)
+        update_versions(versions)
 
+    print("\nSingle thread memory analysis done. Resetting system...")
     subprocess.run(f"pyperf system reset", shell=True)
 
 
-# Test multi thread
-# Variabili per definire quanti thread e quanti loop per thread
-def exec_threads(version):
-    global THREADS, LOOPS_PER_THREAD
-    times = []
-    for threads in range(1,THREADS+1):
-        print(f"Current version: {version}")
-        print("Threads:", threads)
-        all_time=0
-        for i in range(LOOPS_PER_THREAD):
-            output = subprocess.check_output(f"~/.pyenv/versions/{version}/bin/python fib.py {threads}", shell=True)
-            all_time += float(output.decode(sys.stdout.encoding).replace('\n',''))
-        times.append(round(all_time/LOOPS_PER_THREAD, ndigits=3))
-    return times
-
-
-def save_res(version, times):
-    with open("times.csv", "a") as csv_file:
-            writer = csv.writer(csv_file, delimiter=',')
-            to_insert = []
-            to_insert.append(version)
-            to_insert.extend(times[version])
-            writer.writerow(to_insert)
-
-
-def multi_thread(versions):
-    THREADS = 50
-    LOOPS_PER_THREAD = 10
-
-    times = {}
-    for version, done in versions.items():
-        send_message(f"Multi thread analyis for {version} started")
-        if done[2]:
-            continue
-
-        # Se non è nogil calcola i tempi normalmente
-        if version != "nogil-3.9.10-1":
-            res = exec_threads(version)
-            times[f"{version}"] = res
-            save_res(version, times)
-
-        # Altrimenti calcolali sia con PYTHONGIL=0 che PYTHONGIL=1
-        else:
-            for val in [0, 1]:
-                os.environ["PYTHONGIL"] = str(val)
-                version_str = f"3.9.10-nogil-{val}"
-                tms = exec_threads(version)
-                times[f"{version_str}"] = tms
-                save_res(version, times)
-        send_message(f"Done")
-        versions[version][2] = True
-        with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json", "w") as f:
-            versions_json = json.dumps(versions, indent=4)
-            f.write(versions_json)
-
 
 def analyse_single_thread():
-    path = f'{os.environ['HOME']}/NoGILExperiments/pyperf_res/'
+    global results_path
+    all_subdirs = [results_path+d for d in os.listdir(results_path) if os.path.isdir(results_path+d) and d!="vecchi_dati"]
+    latest_subdir = max(all_subdirs, key=os.path.getmtime)
+
+    test_path = latest_subdir + "/single_thread/"
+
+
     files_to_process = []
-    for file_name in os.listdir(path):
+    for file_name in os.listdir(test_path):
         if file_name.endswith('.json'):
             files_to_process.append(file_name)
 
     processed_files = {}
     for file in files_to_process:
-        f = open(path + file)
+        f = open(test_path + file)
         data = json.load(f)
         benchmarks = {}
         for d in data['benchmarks'][1:]:
@@ -250,19 +334,24 @@ def analyse_single_thread():
     plt.legend(labels)
     ticks = [i for i in range(len(times))]
     plt.xticks(ticks, labels=labels)
-    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images2/confronto_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
-
+    plt.savefig(f"./images/{date_time_str}/confronto_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 def analyse_memory_single_thread():
-    path = f'{os.environ['HOME']}/NoGILExperiments/pyperf_res/memory/'
+    global results_path
+    all_subdirs = [results_path+d for d in os.listdir(results_path) if os.path.isdir(results_path+d) and d!="vecchi_dati"]
+    latest_subdir = max(all_subdirs, key=os.path.getmtime)
+
+    test_path = latest_subdir + "/memory_single_thread/"
+
+
     files_to_process = []
-    for file_name in os.listdir(path):
+    for file_name in os.listdir(test_path):
         if file_name.endswith('.json'):
             files_to_process.append(file_name)
 
     processed_files = {}
     for file in files_to_process:
-        f = open(path + file)
+        f = open(test_path + file)
         data = json.load(f)
         benchmarks = {}
         for d in data['benchmarks'][1:]:
@@ -328,10 +417,15 @@ def analyse_memory_single_thread():
     plt.legend(labels)
     ticks = [i for i in range(len(mems))]
     plt.xticks(ticks, labels=labels)
-    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images2/confronto_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"./images/{date_time_str}/confronto_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 def analyse_multi_thread():
-    arr = np.genfromtxt(f'{os.environ['HOME']}/NoGILExperiments/times.csv', delimiter=',',dtype=str)
+    global results_path, THREADS
+    all_subdirs = [results_path+d for d in os.listdir(results_path) if os.path.isdir(results_path+d) and d!="vecchi_dati"]
+    latest_subdir = max(all_subdirs, key=os.path.getmtime)
+    test_path = latest_subdir + "/multi_thread"
+
+    arr = np.genfromtxt(f'{test_path}/memories.csv', delimiter=',',dtype=str)
     df = pd.DataFrame(arr.T)
     new_header = df.iloc[0]  # grab the first row for the header
     df = df[1:]  # take the data less the header row
@@ -348,22 +442,70 @@ def analyse_multi_thread():
 
     for col in df.columns:
         vals = list(df[col].astype(float))
-        plt.plot(list(range(1, 51)), vals, color=colors.pop())
-    plt.axvline(x=multiprocessing.cpu_count(), color=colors.pop(), linestyle='--')
+        color = colors.pop()
+        plt.plot(THREADS, vals, color=color)
+        colors.insert(0,color)
+
+    plt.xlabel("Number of threads")
+    plt.ylabel("Execution memory in bytes")
+    legend = columns.copy()
+    plt.legend(legend)
+    plt.savefig(f"./images/{date_time_str}/confronto_multi_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+
+    arr = np.genfromtxt(f'{test_path}/times.csv', delimiter=',',dtype=str)
+    df = pd.DataFrame(arr.T)
+    new_header = df.iloc[0]  # grab the first row for the header
+    df = df[1:]  # take the data less the header row
+    df.columns = new_header  # set the header row as the df header
+
+    plt.figure(figsize=(7, 7))
+    columns = list(df.columns)
+    for col in range(len(columns)):
+        val = columns[col].replace("_0", "_active").replace("_1", "_notactive")
+        columns[col] = val
+
+    colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff"]
+    colors.reverse()
+
+    for col in df.columns:
+        vals = list(df[col].astype(float))
+        color = colors.pop()
+        plt.plot(THREADS, vals, color=color)
+        colors.insert(0,color)
+    
+    color = colors.pop()
+    plt.axvline(x=multiprocessing.cpu_count(), color=color, linestyle='--')
+    colors.insert(0,color)
     plt.xlabel("Number of threads")
     plt.ylabel("Execution time in seconds")
     legend = columns.copy()
     legend.append("Number of cores")
     plt.legend(legend)
-    plt.xlim((0, 51))
-    ticks = [i for i in range(51) if i % 10 == 0]
+    plt.xlim(THREADS[0], THREADS[-1])
+    ticks = THREADS
     ticks.append(multiprocessing.cpu_count())
+    ticks = list(set(ticks))
     ticks.sort()
     plt.xticks(ticks)
-    plt.savefig(f"{os.environ['HOME']}/NoGILExperiments/images2/confronto_multi_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
-
+    plt.savefig(f"./images/{date_time_str}/confronto_multi_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 def main():
+    global debug, THREADS
+
+    parser = argparse.ArgumentParser(description='',
+                                     prog="",
+                                     formatter_class=SmartFormatter)
+
+    parser.add_argument('-d', '--debug', 
+                        default=False,
+                        const=True,
+                        action='store_const',
+                        help="Debug Mode ON. When on the script won't save results.")
+                             
+    args = parser.parse_args()
+
+    debug=args.debug
+
     versions = {
         "3.9.10": [False, False, False],
         "nogil-3.9.10-1": [False, False, False],
@@ -373,21 +515,25 @@ def main():
         "3.12.2": [False, False, False],
     }
 
-    if not os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/images"):
-        os.makedirs(f"{os.environ['HOME']}/NoGILExperiments/images")
-
+    Path(f"{os.environ['HOME']}/NoGILExperiments/images").mkdir(parents=True, exist_ok=True)
+    Path(f"{os.environ['HOME']}/NoGILExperiments/images/{date_time_str}").mkdir(parents=True, exist_ok=True)
     if not os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res"):
         os.makedirs(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res")
 
-    if not os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res/memory"):
-        os.makedirs(f"{os.environ['HOME']}/NoGILExperiments/pyperf_res/memory")
+    MAX_THREADS = int(os.environ['THREADS'])
+    
+    THREADS=[]
+    i=0
+    while 2**i <= MAX_THREADS:
+        THREADS.append(2**i)
+        i+=1
 
-    #versions = check_file(versions)
-    #check_versions(versions)
+    versions = check_file(versions)
+    check_versions(versions)
     
     single_thread(versions)
-    #memory_single_thread(versions)
-    #multi_thread(versions)
+    memory_single_thread(versions)
+    multi_thread(versions)
 
     #analyse_single_thread()
     #analyse_memory_single_thread()

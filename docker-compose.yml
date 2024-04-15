@@ -5,5 +5,8 @@ services:
     image: xbit18/python_performance:v0
     privileged: true
     build: .    
+    environment:
+      - THREADS=$THREADS
+      - ITERS=$ITERS
     volumes:
       - '.:/root/NoGILExperiments'  
