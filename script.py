@@ -108,15 +108,20 @@ def update_versions(versions):
         versions_json = json.dumps(versions, indent=4)
         f.write(versions_json)
 
-def exec_threads(version, THREADS, LOOPS_PER_THREAD):
+def exec_threads(version, THREADS, LOOPS_PER_THREAD, path):
     times = []
     memories = []
-    for thread in THREADS:
+    malloc_path = path + f"/{version}_malloc"
+    for idx, thread in enumerate(THREADS):
         print("Threads:", thread)
         all_time=0
         all_memory=0
         for i in range(LOOPS_PER_THREAD):
-            output = subprocess.check_output(f"~/.pyenv/versions/{version}/bin/python3 fib.py {thread}", shell=True)
+            command = f"~/.pyenv/versions/{version}/bin/python3 fib.py {thread}"
+            if idx == len(THREADS)-1:
+                command += f" {malloc_path}"
+            
+            output = subprocess.check_output(command, shell=True)
             time, mem = output.decode(sys.stdout.encoding).replace('\n','').split(" ")
             all_time += float(time)
             all_memory += int(mem)
@@ -193,7 +198,7 @@ def multi_thread(versions):
         #send_message(f"Multi thread analyis for {version} started")
         # Se non è nogil calcola i tempi normalmente
         if version != "nogil-3.9.10-1":
-            res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD)
+            res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD, path)
             times[f"{version}"] = res_time
             memories[f"{version}"] = res_mem
             save_res(version, times, memories, path)
@@ -204,7 +209,7 @@ def multi_thread(versions):
                 os.environ["PYTHONGIL"] = str(val)
                 print(f"PYTHONGIL={os.environ.get('PYTHONGIL')}")
                 version_str = f"3.9.10-nogil_{val}"
-                res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD)
+                res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD, path)
                 times[f"{version_str}"] = res_time
                 memories[f"{version_str}"] = res_mem
                 save_res(version_str, times, memories, path)
@@ -510,11 +515,11 @@ def main():
     debug=args.debug
 
     versions = {
-        "3.9.10": [False, False, False],
-        "nogil-3.9.10-1": [False, False, False],
-        "3.9.18": [False, False, False],
-        "3.10.13": [False, False, False],
-        "3.11.8": [False, False, False],
+        #"3.9.10": [False, False, False],
+        #"nogil-3.9.10-1": [False, False, False],
+        #"3.9.18": [False, False, False],
+        #"3.10.13": [False, False, False],
+        #"3.11.8": [False, False, False],
         "3.12.2": [False, False, False],
     }
 
