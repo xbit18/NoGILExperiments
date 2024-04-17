@@ -66,16 +66,16 @@ def check_versions(versions):
     temp = versions.copy()
     for version in temp.keys():
 
-        if not os.path.exists(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}"):
+        if not os.path.exists(f"{os.environ['HOME']}/.pyenv/versions/{version}"):
             res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True)
         
-        checking_pyperformance = subprocess.run(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pip list | grep 'pyperformance'", shell=True, capture_output=True)
+        checking_pyperformance = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip list | grep 'pyperformance'", shell=True, capture_output=True)
         if checking_pyperformance.returncode == 1:
-            res2 = subprocess.run(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pip install pyperformance", shell=True, capture_output=True)
+            res2 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install pyperformance", shell=True, capture_output=True)
         
-        checking_telegram_send = subprocess.run(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pip list | grep 'telegram_send'", shell=True, capture_output=True)
+        checking_telegram_send = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip list | grep 'telegram_send'", shell=True, capture_output=True)
         if checking_telegram_send.returncode == 1:
-            res3 = subprocess.run(f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pip install telegram_send",
+            res3 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install telegram_send",
                                 shell=True, capture_output=True)
 
 def save_res(version, times, memories, path):
@@ -126,37 +126,40 @@ def exec_threads(version, THREADS, LOOPS_PER_THREAD):
 
 # Test single thread
 def single_thread(versions):
-    global date_time_str, debug, results_path
-    path=f"{results_path}{date_time_str}/single_thread"
-    if debug:
-        print(path)
-        return
-    Path(path).mkdir(parents=True, exist_ok=True)
+    try:
+        global date_time_str, debug, results_path
+        path=f"{results_path}{date_time_str}/single_thread"
+        if debug:
+            print(path)
+            return
+        Path(path).mkdir(parents=True, exist_ok=True)
 
-    print("\nStarting single thread analysis...")
-    print("\nTuning system...")
-    subprocess.run(f"pyperf system tune", shell=True)
+        print("\nStarting single thread analysis...")
+        print("\nTuning system...")
+        subprocess.run(f"pyperf system tune", shell=True)
 
-    for version, done in versions.items():
-        if done[0]:
-            continue
-        
-        send_message(f"Single thread analyis for {version} started")
-        
-        command = f"pyperformance run --python={os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -o {path}/{version}.json"
-        subprocess.run(
-            command,
-            shell=True)
+        for version, done in versions.items():
+            if done[0]:
+                continue
+            
+            send_message(f"Single thread analyis for {version} started")
+            
+            command = f"pyperformance run --python={os.environ['HOME']}/.pyenv/versions/{version}/bin/python -o {path}/{version}.json"
+            subprocess.run(
+                command,
+                shell=True)
 
-        send_message(f"Done")
+            send_message(f"Done")
 
-        versions[version][0] = True
-        with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json", "w") as f:
-            versions_json = json.dumps(versions, indent=4)
-            f.write(versions_json)
+            versions[version][0] = True
+            with open(f"{os.environ['HOME']}/NoGILExperiments/versions.json", "w") as f:
+                versions_json = json.dumps(versions, indent=4)
+                f.write(versions_json)
 
-    print("\nSingle thread analysis done. Resetting system...")
-    subprocess.run("pyperf system reset", shell=True)
+        print("\nSingle thread analysis done. Resetting system...")
+        subprocess.run("pyperf system reset", shell=True)
+    except Exception as e:
+        print(e)
 
 # Test multi thread
 # Variabili per definire quanti thread e quanti loop per thread
@@ -232,7 +235,7 @@ def memory_single_thread(versions):
         
         send_message(f"Single thread memory analyis for {version} started")
 
-        command = f"{os.environ['HOME']}/NoGILExperiments/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {path}/{version}.json"
+        command = f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {path}/{version}.json"
         if version == "nogil-3.9.10-1":
             command += " --benchmarks=-gc_traversal"
         
