@@ -67,7 +67,9 @@ def check_versions(versions):
     for version in temp.keys():
 
         if not os.path.exists(f"{os.environ['HOME']}/.pyenv/versions/{version}"):
-            res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True)
+            del versions[version]
+            continue
+            #res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True)
         
         checking_pyperformance = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip list | grep 'pyperformance'", shell=True, capture_output=True)
         if checking_pyperformance.returncode == 1:
@@ -77,6 +79,7 @@ def check_versions(versions):
         if checking_telegram_send.returncode == 1:
             res3 = subprocess.run(f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pip install telegram_send",
                                 shell=True, capture_output=True)
+    return versions
 
 def save_res(version, times, memories, path):
     global debug
@@ -120,8 +123,11 @@ def exec_threads(version, THREADS, LOOPS_PER_THREAD, path):
             command = f"~/.pyenv/versions/{version}/bin/python3 fib.py {thread}"
             if idx == len(THREADS)-1:
                 command += f" {malloc_path}"
-            
-            output = subprocess.check_output(command, shell=True)
+            try:
+            	output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
+            except  subprocess.CalledProcessError as e:
+		print(e.cmd, e.returncode, e.output)
+		quit()
             time, mem = output.decode(sys.stdout.encoding).replace('\n','').split(" ")
             all_time += float(time)
             all_memory += int(mem)
@@ -149,7 +155,7 @@ def single_thread(versions):
             
             send_message(f"Single thread analyis for {version} started")
             
-            command = f"pyperformance run --python={os.environ['HOME']}/.pyenv/versions/{version}/bin/python -o {path}/{version}.json"
+            command = f"pyperformance run --python={os.environ['HOME']}/.pyenv/versions/{version}/bin/python -o {path}/{version}.json --benchmarks=2to3"
             subprocess.run(
                 command,
                 shell=True)
@@ -240,7 +246,7 @@ def memory_single_thread(versions):
         
         send_message(f"Single thread memory analyis for {version} started")
 
-        command = f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {path}/{version}.json"
+        command = f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {path}/{version}.json --benchmarks=2to3"
         if version == "nogil-3.9.10-1":
             command += " --benchmarks=-gc_traversal"
         
@@ -500,6 +506,8 @@ def analyse_multi_thread():
 def main():
     global debug, THREADS
 
+    print("Starting up...")
+
     parser = argparse.ArgumentParser(description='',
                                      prog="",
                                      formatter_class=SmartFormatter)
@@ -537,10 +545,10 @@ def main():
         i+=1
 
     versions = check_file(versions)
-    check_versions(versions)
+    versions = check_versions(versions)
     
-    single_thread(versions)
-    memory_single_thread(versions)
+    #single_thread(versions)
+    #memory_single_thread(versions)
     multi_thread(versions)
 
     #analyse_single_thread()
