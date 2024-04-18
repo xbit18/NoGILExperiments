@@ -8,5 +8,9 @@ services:
     environment:
       - THREADS=$THREADS
       - ITERS=$ITERS
+      - IS_HOST_MACOS=$IS_HOST_MACOS
+      - DEBUG=$DEBUG
+      - VERBOSE=$VERBOSE
+      - RESTART=$RESTART
     volumes:
-      - '.:/root/NoGILExperiments'  
+      - './pyperf_res:/root/pyperf_res'  
