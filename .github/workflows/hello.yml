@@ -1,0 +1,4 @@
+steps:
+  - name: Hello world action
+    run: # Set the secret as an input
+      echo "${{ secrets.DOCKER_PASSWORD }}"
