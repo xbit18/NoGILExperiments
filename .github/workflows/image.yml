@@ -21,4 +21,4 @@ jobs:
         run: |
           docker buildx build \
             --tag xbit18/python_performance:latest \
-            --platform linux/amd64,linux/arm64 .
+            --platform linux/amd64 .
