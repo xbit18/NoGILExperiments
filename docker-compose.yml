@@ -2,7 +2,7 @@ version: '1.0'
 
 services:
   nogil:
-    image: xbit18/python_performance:v0
+    image: xbit18/python_performance:latest
     privileged: true
     build: .    
     environment:
