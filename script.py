@@ -4,7 +4,7 @@ import asyncio
 # Importa librerie
 import multiprocessing
 import sys
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import os
 import platform
 import csv
@@ -79,7 +79,7 @@ def check_file(versions):
 def send_message(message):
     if verbose:
         send = tel.send(messages=[message], parse_mode="Markdown",
-                        disable_web_page_preview=True, conf=f'{os.getenv("HOME")}/telegram.conf')
+                        disable_web_page_preview=True, conf=f'./telegram.conf')
         asyncio.run(send)
 
 # Metodo che controlla che ogni versione specificata sia installata sul sistema.
@@ -316,8 +316,8 @@ def memory_single_thread(versions):
 def main():
     global debug, verbose, THREADS, capture_output, restart
 
-    dotenv_path = Path('./.env')
-    load_dotenv(dotenv_path=dotenv_path)
+    # dotenv_path = Path('./.env')
+    # load_dotenv(dotenv_path=dotenv_path)
 
     print("Starting up...")
     debug=bool(int(os.getenv('DEBUG')))
@@ -363,7 +363,7 @@ def main():
     #Path(f"{os.getenv('HOME')}/NoGILExperiments/images/{date_time_str}").mkdir(parents=True, exist_ok=True)
 
     MAX_THREADS = int(os.getenv('THREADS'))
-    
+
     THREADS=[]
     i=0
     while 2**i <= MAX_THREADS:
@@ -373,8 +373,8 @@ def main():
     versions = check_file(versions)
     versions = check_versions(versions)
     
-    #single_thread(versions)
-    #memory_single_thread(versions)
+    single_thread(versions)
+    memory_single_thread(versions)
     multi_thread(versions)
 
 if __name__ == '__main__':
