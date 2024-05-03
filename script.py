@@ -4,6 +4,7 @@ import asyncio
 # Importa librerie
 import multiprocessing
 import sys
+from dotenv import load_dotenv
 import os
 import platform
 import csv
@@ -20,6 +21,7 @@ from pathlib import Path
 
 
 debug = False
+verbose = False
 capture_output=False
 restart = False
 date_time_str = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
@@ -44,15 +46,15 @@ class SmartFormatter(argparse.HelpFormatter):
 def check_file(versions):
     if restart:
         print("Starting over. Dumping versions.json file.")
-        with open(f"{os.environ['HOME']}/versions.json","w") as f:
+        with open(f"{os.getenv('HOME')}/versions.json","w") as f:
             versions_json = json.dumps(versions, indent=4)
             new_versions = versions
             f.write(versions_json)
         return versions
     
     print("Checking if versions.json file exists")
-    if os.path.exists(f"{os.environ['HOME']}/versions.json"):
-        with open(f"{os.environ['HOME']}/versions.json","r") as f:
+    if os.path.exists(f"{os.getenv('HOME')}/versions.json"):
+        with open(f"{os.getenv('HOME')}/versions.json","r") as f:
             new_versions = json.load(f)
             print("File exists - Loaded")
             
@@ -61,13 +63,13 @@ def check_file(versions):
                     if val == False:
                         return new_versions
             
-            with open(f"{os.environ['HOME']}/versions.json","w") as f:
+            with open(f"{os.getenv('HOME')}/versions.json","w") as f:
                 versions_json = json.dumps(versions, indent=4)
                 new_versions = versions
                 f.write(versions_json)
             #pp(versions)
     else:
-        with open(f"{os.environ['HOME']}/versions.json","w") as f:
+        with open(f"{os.getenv('HOME')}/versions.json","w") as f:
             versions_json = json.dumps(versions, indent=4)
             new_versions = versions
             f.write(versions_json)
@@ -75,9 +77,9 @@ def check_file(versions):
     return new_versions
 
 def send_message(message):
-    if debug:
+    if verbose:
         send = tel.send(messages=[message], parse_mode="Markdown",
-                        disable_web_page_preview=True, conf=f'{os.environ['HOME']}/telegram.conf')
+                        disable_web_page_preview=True, conf=f'{os.getenv("HOME")}/telegram.conf')
         asyncio.run(send)
 
 # Metodo che controlla che ogni versione specificata sia installata sul sistema.
@@ -91,7 +93,7 @@ def check_versions(versions):
     temp = versions.copy()
     for version in temp.keys():
 
-        if not os.path.exists(f"{os.environ['HOME']}/.pyenv/versions/{version}"):
+        if not os.path.exists(f"{os.getenv('HOME')}/.pyenv/versions/{version}"):
             print(f"Version {version} not installed. Skipping...")
             del versions[version]
             continue
@@ -124,7 +126,7 @@ def update_versions(versions):
     if debug:
         return
 
-    with open(f"{os.environ['HOME']}/versions.json", "w") as f:
+    with open(f"{os.getenv('HOME')}/versions.json", "w") as f:
         versions_json = json.dumps(versions, indent=4)
         f.write(versions_json)
 
@@ -133,7 +135,10 @@ def exec_threads(version, THREADS, LOOPS_PER_THREAD, path):
     memories = []
     malloc_path = path + f"/{version}_malloc"
     for idx, thread in enumerate(THREADS):
-        print("Threads:", thread)
+        message = "Threads: " + str(thread)
+        print(message)
+        send_message(message)
+        
         all_time=0
         all_memory=0
         for i in range(LOOPS_PER_THREAD):
@@ -163,7 +168,7 @@ def single_thread(versions):
         send_message(message)
         print(message)
 
-        if os.environ['IS_HOST_MACOS'] == '0':
+        if os.getenv('IS_HOST_MACOS') == '0':
             print("\nTuning system...")
             subprocess.run(f"pyperf system tune", shell=True, capture_output = capture_output)
 
@@ -175,7 +180,7 @@ def single_thread(versions):
             send_message(message)
             print(message)
             
-            command = f"pyperformance run --python={os.environ['HOME']}/.pyenv/versions/{version}/bin/python -o {path}/{version}.json"
+            command = f"pyperformance run --python={os.getenv('HOME')}/.pyenv/versions/{version}/bin/python -o {path}/{version}.json"
             
             if debug:
                 command += " --benchmarks=2to3"
@@ -196,7 +201,7 @@ def single_thread(versions):
         send_message(message)
         print(message)
 
-        if os.environ['IS_HOST_MACOS'] == '0':
+        if os.getenv('IS_HOST_MACOS') == '0':
             print("Resetting system...")
             subprocess.run("pyperf system reset", shell=True, capture_output = capture_output)
     except Exception as e:
@@ -218,7 +223,7 @@ def multi_thread(versions):
         print("\nITERS NUMBER NOT SPECIFIED\nAborting...")
         return 
 
-    LOOPS_PER_THREAD = int(os.environ['ITERS'])
+    LOOPS_PER_THREAD = int(os.getenv('ITERS'))
 
     times = {}
     memories = {}
@@ -242,7 +247,7 @@ def multi_thread(versions):
         else:
             for val in [0, 1]:
                 os.environ["PYTHONGIL"] = str(val)
-                print(f"PYTHONGIL={os.environ.get('PYTHONGIL')}")
+                print(f"PYTHONGIL={os.getenv('PYTHONGIL')}")
                 version_str = f"3.9.10-nogil_{val}"
                 res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD, path)
                 times[f"{version_str}"] = res_time
@@ -268,7 +273,7 @@ def memory_single_thread(versions):
     send_message(message)
     print(message)
 
-    if os.environ['IS_HOST_MACOS'] == '0':
+    if os.getenv('IS_HOST_MACOS') == '0':
         print("Tuning system...")
         subprocess.run(f"pyperf system tune", shell=True, capture_output = capture_output)
 
@@ -280,7 +285,7 @@ def memory_single_thread(versions):
         send_message(message)
         print(message)
 
-        command = f"{os.environ['HOME']}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {path}/{version}.json"
+        command = f"{os.getenv('HOME')}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {path}/{version}.json"
         
         if not debug and version == "nogil-3.9.10-1":
             command += " --benchmarks=-gc_traversal"
@@ -303,18 +308,21 @@ def memory_single_thread(versions):
     send_message(message)
     print(message)
     
-    if os.environ['IS_HOST_MACOS'] == '0':
+    if os.getenv('IS_HOST_MACOS') == '0':
         print("Resetting system...")
         subprocess.run(f"pyperf system reset", shell=True, capture_output = capture_output)
 
 
 def main():
-    global debug, THREADS, capture_output, restart
-    print("Starting up...")
+    global debug, verbose, THREADS, capture_output, restart
 
-    debug=bool(int(os.environ['DEBUG']))
-    verbose=bool(int(os.environ['VERBOSE']))
-    restart=bool(int(os.environ['RESTART']))
+    dotenv_path = Path('./.env')
+    load_dotenv(dotenv_path=dotenv_path)
+
+    print("Starting up...")
+    debug=bool(int(os.getenv('DEBUG')))
+    verbose=bool(int(os.getenv('VERBOSE')))
+    restart=bool(int(os.getenv('RESTART')))
 
     capture_output = not verbose
     send_message('#' * 20)
@@ -351,10 +359,10 @@ def main():
         }
     }
 
-    #Path(f"{os.environ['HOME']}/NoGILExperiments/images").mkdir(parents=True, exist_ok=True)
-    #Path(f"{os.environ['HOME']}/NoGILExperiments/images/{date_time_str}").mkdir(parents=True, exist_ok=True)
+    #Path(f"{os.getenv('HOME')}/NoGILExperiments/images").mkdir(parents=True, exist_ok=True)
+    #Path(f"{os.getenv('HOME')}/NoGILExperiments/images/{date_time_str}").mkdir(parents=True, exist_ok=True)
 
-    MAX_THREADS = int(os.environ['THREADS'])
+    MAX_THREADS = int(os.getenv('THREADS'))
     
     THREADS=[]
     i=0
@@ -365,8 +373,8 @@ def main():
     versions = check_file(versions)
     versions = check_versions(versions)
     
-    single_thread(versions)
-    memory_single_thread(versions)
+    #single_thread(versions)
+    #memory_single_thread(versions)
     multi_thread(versions)
 
 if __name__ == '__main__':
