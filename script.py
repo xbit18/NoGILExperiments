@@ -4,7 +4,7 @@ import asyncio
 # Importa librerie
 import multiprocessing
 import sys
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 import os
 import platform
 import csv
@@ -24,6 +24,7 @@ debug = False
 verbose = False
 capture_output=False
 restart = False
+telegram = False
 date_time_str = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
 results_path = "./pyperf_res/"
 THREADS = []
@@ -46,15 +47,15 @@ class SmartFormatter(argparse.HelpFormatter):
 def check_file(versions):
     if restart:
         print("Starting over. Dumping versions.json file.")
-        with open(f"{os.getenv('HOME')}/versions.json","w") as f:
+        with open(f"./versions.json","w") as f:
             versions_json = json.dumps(versions, indent=4)
             new_versions = versions
             f.write(versions_json)
         return versions
     
     print("Checking if versions.json file exists")
-    if os.path.exists(f"{os.getenv('HOME')}/versions.json"):
-        with open(f"{os.getenv('HOME')}/versions.json","r") as f:
+    if os.path.exists(f"./versions.json"):
+        with open(f"./versions.json","r") as f:
             new_versions = json.load(f)
             print("File exists - Loaded")
             
@@ -63,13 +64,13 @@ def check_file(versions):
                     if val == False:
                         return new_versions
             
-            with open(f"{os.getenv('HOME')}/versions.json","w") as f:
+            with open(f"./versions.json","w") as f:
                 versions_json = json.dumps(versions, indent=4)
                 new_versions = versions
                 f.write(versions_json)
             #pp(versions)
     else:
-        with open(f"{os.getenv('HOME')}/versions.json","w") as f:
+        with open(f"./versions.json","w") as f:
             versions_json = json.dumps(versions, indent=4)
             new_versions = versions
             f.write(versions_json)
@@ -77,7 +78,7 @@ def check_file(versions):
     return new_versions
 
 def send_message(message):
-    if verbose:
+    if telegram:
         send = tel.send(messages=[message], parse_mode="Markdown",
                         disable_web_page_preview=True, conf=f'./telegram.conf')
         asyncio.run(send)
@@ -126,7 +127,7 @@ def update_versions(versions):
     if debug:
         return
 
-    with open(f"{os.getenv('HOME')}/versions.json", "w") as f:
+    with open(f"./versions.json", "w") as f:
         versions_json = json.dumps(versions, indent=4)
         f.write(versions_json)
 
@@ -145,6 +146,7 @@ def exec_threads(version, THREADS, LOOPS_PER_THREAD, path):
             command = f"~/.pyenv/versions/{version}/bin/python3 fib.py {thread}"
             if idx == len(THREADS)-1:
                 command += f" {malloc_path}"
+            command = command.replace("nogil-3.9.10-1_0","nogil-3.9.10-1").replace("nogil-3.9.10-1_1","nogil-3.9.10-1")
             try:
                 output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
             except  subprocess.CalledProcessError as e:
@@ -180,12 +182,25 @@ def single_thread(versions):
             send_message(message)
             print(message)
             
-            command = f"pyperformance run --python={os.getenv('HOME')}/.pyenv/versions/{version}/bin/python -o {path}/{version}.json"
+            version_str = version.replace("nogil-3.9.10-1_0","nogil-3.9.10-1").replace("nogil-3.9.10-1_1","nogil-3.9.10-1")
+            output_path = f"{path}/{version}.json"
+            command = f"pyperformance run --python={os.getenv('HOME')}/.pyenv/versions/{version_str}/bin/python -o {output_path}"
             
             if debug:
                 command += " --benchmarks=2to3"
 
+            if version == "nogil-3.9.10-1_0":
+                os.environ["PYTHONGIL"] = "0"
+                command += " --inherit-environ=PYTHONGIL"
+            
+            if version == "nogil-3.9.10-1_1":
+                os.environ["PYTHONGIL"] = "1"
+                command += " --inherit-environ=PYTHONGIL"
+            
             print("Running command: ", command)
+            
+            if debug:
+                continue
             
             subprocess.run(
                 command,
@@ -237,22 +252,16 @@ def multi_thread(versions):
         print(message)
         #send_message(f"Multi thread analysis for {version} started")
         # Se non è nogil calcola i tempi normalmente
-        if version != "nogil-3.9.10-1":
-            res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD, path)
-            times[f"{version}"] = res_time
-            memories[f"{version}"] = res_mem
-            save_res(version, times, memories, path)
+        if version == "nogil-3.9.10-1_0":
+            os.environ["PYTHONGIL"] = '0'
+        
+        if version == "nogil-3.9.10-1_1":
+            os.environ["PYTHONGIL"] = '1'
 
-        # Altrimenti calcolali sia con PYTHONGIL=0 che PYTHONGIL=1
-        else:
-            for val in [0, 1]:
-                os.environ["PYTHONGIL"] = str(val)
-                print(f"PYTHONGIL={os.getenv('PYTHONGIL')}")
-                version_str = f"3.9.10-nogil_{val}"
-                res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD, path)
-                times[f"{version_str}"] = res_time
-                memories[f"{version_str}"] = res_mem
-                save_res(version_str, times, memories, path)
+        res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD, path)
+        times[f"{version}"] = res_time
+        memories[f"{version}"] = res_mem
+        save_res(version, times, memories, path)
         
         #send_message(f"Done")
 
@@ -284,16 +293,29 @@ def memory_single_thread(versions):
         message = f"Single thread memory analysis for {version} started"
         send_message(message)
         print(message)
-
-        command = f"{os.getenv('HOME')}/.pyenv/versions/{version}/bin/python -m pyperformance run -m -o {path}/{version}.json"
         
-        if not debug and version == "nogil-3.9.10-1":
+        version_str = version.replace("nogil-3.9.10-1_0","nogil-3.9.10-1").replace("nogil-3.9.10-1_1","nogil-3.9.10-1")
+        output_path = f"{path}/{version}.json"
+        command = f"{os.getenv('HOME')}/.pyenv/versions/{version_str}/bin/python -m pyperformance run -m -o {output_path}"
+        
+        if not debug and "nogil-3.9.10-1" in version:
             command += " --benchmarks=-gc_traversal"
 
         if debug:
             command += " --benchmarks=2to3"
+
+        if version == "nogil-3.9.10-1_0":
+                os.environ["PYTHONGIL"] = "0"
+                command += " --inherit-environ=PYTHONGIL"
+            
+        if version == "nogil-3.9.10-1_1":
+            os.environ["PYTHONGIL"] = "1"
+            command += " --inherit-environ=PYTHONGIL"
         
         print("Running command: ", command)
+
+        if debug:
+            continue
 
         subprocess.run(
             command,
@@ -314,15 +336,16 @@ def memory_single_thread(versions):
 
 
 def main():
-    global debug, verbose, THREADS, capture_output, restart
+    global debug, verbose, THREADS, capture_output, restart, telegram
 
-    # dotenv_path = Path('./.env')
-    # load_dotenv(dotenv_path=dotenv_path)
+    dotenv_path = Path('./.env')
+    load_dotenv(dotenv_path=dotenv_path)
 
     print("Starting up...")
     debug=bool(int(os.getenv('DEBUG')))
     verbose=bool(int(os.getenv('VERBOSE')))
     restart=bool(int(os.getenv('RESTART')))
+    telegram=bool(int(os.getenv('TELEGRAM')))
 
     capture_output = not verbose
     send_message('#' * 20)
@@ -332,7 +355,12 @@ def main():
             "single_thread_memory": False,
             "multi_thread": False
         },
-        "nogil-3.9.10-1": {
+        "nogil-3.9.10-1_0": {
+            "single_thread": False,
+            "single_thread_memory": False,
+            "multi_thread": False
+        },
+        "nogil-3.9.10-1_1": {
             "single_thread": False,
             "single_thread_memory": False,
             "multi_thread": False
@@ -371,11 +399,11 @@ def main():
         i+=1
 
     versions = check_file(versions)
-    versions = check_versions(versions)
+    # versions = check_versions(versions)
     
-    single_thread(versions)
-    memory_single_thread(versions)
-    multi_thread(versions)
+    # single_thread(versions)
+    # memory_single_thread(versions)
+    # multi_thread(versions)
 
 if __name__ == '__main__':
     main()

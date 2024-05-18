@@ -28,6 +28,7 @@ RUN pip install numpy pandas matplotlib telegram_send
 ADD ./script.py /root
 ADD ./fib.py /root
 ADD ./telegram.conf /root
+ADD ./versions.json /root
 WORKDIR ${HOME}
 RUN mkdir /root/pyperf_res
 CMD ["python","-u","/root/script.py"]
