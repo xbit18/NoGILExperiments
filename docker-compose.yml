@@ -4,7 +4,6 @@ services:
   nogil:
     image: xbit18/python_performance:latest
     privileged: true
-    build: .    
     environment:
       - THREADS=$THREADS
       - ITERS=$ITERS
@@ -12,5 +11,6 @@ services:
       - DEBUG=$DEBUG
       - VERBOSE=$VERBOSE
       - RESTART=$RESTART
+      - TELEGRAM=$TELEGRAM
     volumes:
       - './pyperf_res:/root/pyperf_res'  
