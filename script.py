@@ -4,7 +4,7 @@ import asyncio
 # Importa librerie
 import multiprocessing
 import sys
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import os
 import platform
 import csv
@@ -338,8 +338,8 @@ def memory_single_thread(versions):
 def main():
     global debug, verbose, THREADS, capture_output, restart, telegram
 
-    dotenv_path = Path('./.env')
-    load_dotenv(dotenv_path=dotenv_path)
+    # dotenv_path = Path('./.env')
+    # load_dotenv(dotenv_path=dotenv_path)
 
     print("Starting up...")
     debug=bool(int(os.getenv('DEBUG')))
@@ -399,11 +399,11 @@ def main():
         i+=1
 
     versions = check_file(versions)
-    # versions = check_versions(versions)
+    versions = check_versions(versions)
     
-    # single_thread(versions)
-    # memory_single_thread(versions)
-    # multi_thread(versions)
+    single_thread(versions)
+    memory_single_thread(versions)
+    multi_thread(versions)
 
 if __name__ == '__main__':
     main()
