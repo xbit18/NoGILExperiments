@@ -4,7 +4,6 @@ import asyncio
 # Importa librerie
 import multiprocessing
 import sys
-from dotenv import load_dotenv
 import os
 import platform
 import csv
@@ -339,8 +338,10 @@ def memory_single_thread(versions):
 def main():
     global debug, verbose, THREADS, capture_output, restart, telegram
 
-    dotenv_path = Path('./.env')
-    load_dotenv(dotenv_path=dotenv_path)
+    if os.getenv('IS_HOST_MACOS') == '0':
+        from dotenv import load_dotenv
+        dotenv_path = Path('./.env')
+        load_dotenv(dotenv_path=dotenv_path)
 
     print("Starting up...")
     try:
