@@ -4,14 +4,14 @@ import asyncio
 # Importa librerie
 import multiprocessing
 import sys
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 import os
 import platform
 import csv
 import pandas as pd
 import numpy as np
 import json
-from pprint import pprint as pp
+from pprint import pprint
 import matplotlib.pyplot as plt
 import subprocess
 import argparse
@@ -93,7 +93,7 @@ def check_versions(versions):
 
     temp = versions.copy()
     for version in temp.keys():
-
+        version = version.replace("nogil-3.9.10-1_0","nogil-3.9.10-1").replace("nogil-3.9.10-1_1","nogil-3.9.10-1")
         if not os.path.exists(f"{os.getenv('HOME')}/.pyenv/versions/{version}"):
             print(f"Version {version} not installed. Skipping...")
             del versions[version]
@@ -197,7 +197,7 @@ def single_thread(versions):
                 os.environ["PYTHONGIL"] = "1"
                 command += " --inherit-environ=PYTHONGIL"
             
-            print("Running command: ", command)
+            print("Running command: ", command, "\n")
             
             if debug:
                 continue
@@ -214,10 +214,10 @@ def single_thread(versions):
 
         message=f"Single thread analysis done"
         send_message(message)
-        print(message)
+        print(message+"\n")
 
         if os.getenv('IS_HOST_MACOS') == '0':
-            print("Resetting system...")
+            print("Resetting system...\n")
             subprocess.run("pyperf system reset", shell=True, capture_output = capture_output)
     except Exception as e:
         print(e)
@@ -267,6 +267,7 @@ def multi_thread(versions):
 
         versions[version]['multi_thread'] = True
         update_versions(versions)
+        print("\n")
     
     message=f"Multi thread analysis done."
     send_message(message)
@@ -312,7 +313,7 @@ def memory_single_thread(versions):
             os.environ["PYTHONGIL"] = "1"
             command += " --inherit-environ=PYTHONGIL"
         
-        print("Running command: ", command)
+        print("Running command: ", command, "\n")
 
         if debug:
             continue
@@ -328,24 +329,33 @@ def memory_single_thread(versions):
 
     message = f"Single thread memory analysis done"
     send_message(message)
-    print(message)
+    print(message+"\n")
     
     if os.getenv('IS_HOST_MACOS') == '0':
-        print("Resetting system...")
+        print("Resetting system...\n")
         subprocess.run(f"pyperf system reset", shell=True, capture_output = capture_output)
 
 
 def main():
     global debug, verbose, THREADS, capture_output, restart, telegram
 
-    # dotenv_path = Path('./.env')
-    # load_dotenv(dotenv_path=dotenv_path)
+    dotenv_path = Path('./.env')
+    load_dotenv(dotenv_path=dotenv_path)
 
     print("Starting up...")
-    debug=bool(int(os.getenv('DEBUG')))
-    verbose=bool(int(os.getenv('VERBOSE')))
-    restart=bool(int(os.getenv('RESTART')))
-    telegram=bool(int(os.getenv('TELEGRAM')))
+    try:
+        if os.getenv('DEBUG') is not None: debug=bool(int(os.getenv('DEBUG')))
+        if os.getenv('VERBOSE') is not None: verbose=bool(int(os.getenv('VERBOSE')))
+        if os.getenv('RESTART') is not None: restart=bool(int(os.getenv('RESTART')))
+        if os.getenv('TELEGRAM') is not None: telegram=bool(int(os.getenv('TELEGRAM')))
+    except TypeError as e:
+        pass
+
+    print("Run parameters:")
+    print(f"DEBUG: {debug}")
+    print(f"VERBOSE: {verbose}")
+    print(f"RESTART: {restart}")
+    print(f"TELEGRAM: {telegram}\n")
 
     capture_output = not verbose
     send_message('#' * 20)
