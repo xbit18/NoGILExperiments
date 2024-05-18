@@ -338,7 +338,7 @@ def memory_single_thread(versions):
 def main():
     global debug, verbose, THREADS, capture_output, restart, telegram
 
-    if os.getenv('IS_HOST_MACOS') == '0':
+    if os.getenv('IS_HOST_MACOS') == '1':
         from dotenv import load_dotenv
         dotenv_path = Path('./.env')
         load_dotenv(dotenv_path=dotenv_path)
