@@ -34,7 +34,8 @@ def analyse_single_thread(dir):
         '3.12.2_processed.json': '3.12.2',
         '3.9.18_processed.json': '3.9.18',
         '3.9.10_processed.json': '3.9.10',
-        'nogil-3.9.10-1_processed.json': 'nogil-3.9.10'
+        'nogil-3.9.10-1_1_processed.json': 'nogil-3.9.10_1',
+        'nogil-3.9.10-1_0_processed.json': 'nogil-3.9.10_0',
     }
 
     # Get complete list of benchmarks
@@ -63,7 +64,7 @@ def analyse_single_thread(dir):
         df[columns[file].replace('.json', '')] = all_times
 
     times_df = pd.DataFrame(df)
-    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10', '3.9.18', '3.10.13', '3.11.8', '3.12.2']
+    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10_0', 'nogil-3.9.10_1', '3.9.18', '3.10.13', '3.11.8', '3.12.2']
     times_df = times_df[columns]
     times_df_notnull = times_df.dropna()
     times_df_notnull.reset_index(inplace=True, drop=True)
@@ -114,7 +115,8 @@ def analyse_memory_single_thread(dir):
         '3.12.2_processed.json': '3.12.2',
         '3.9.18_processed.json': '3.9.18',
         '3.9.10_processed.json': '3.9.10',
-        'nogil-3.9.10-1_processed.json': 'nogil-3.9.10'
+        'nogil-3.9.10-1_1_processed.json': 'nogil-3.9.10_1',
+        'nogil-3.9.10-1_0_processed.json': 'nogil-3.9.10_0',
     }
 
     # Get complete list of benchmarks
@@ -144,7 +146,7 @@ def analyse_memory_single_thread(dir):
         df[columns[file].replace('.json', '')] = all_mems
         
     mems_df = pd.DataFrame(df)
-    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10', '3.9.18', '3.10.13', '3.11.8', '3.12.2']
+    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10_0', 'nogil-3.9.10_1', '3.9.18', '3.10.13', '3.11.8', '3.12.2']
     mems_df = mems_df[columns]
     mems_df_notnull = mems_df.dropna()
     mems_df_notnull.reset_index(inplace=True, drop=True)
