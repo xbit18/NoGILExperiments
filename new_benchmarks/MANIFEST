@@ -1,0 +1,6 @@
+[benchmarks]
+
+name	metafile
+fib	<local>
+
+[group default]
