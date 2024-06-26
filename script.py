@@ -1,24 +1,16 @@
-#!/usr/bin/env python3
+# Import libraries
 import asyncio
-# Setup steps
-# Importa librerie
-import multiprocessing
 import sys
 import os
-import platform
 import csv
-import pandas as pd
-import numpy as np
 import json
-from pprint import pprint
-import matplotlib.pyplot as plt
 import subprocess
 import argparse
 import telegram_send as tel
 from datetime import datetime
 from pathlib import Path
 
-
+# Declare global variables
 debug = False
 verbose = False
 capture_output=False
@@ -28,21 +20,10 @@ date_time_str = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
 results_path = "./pyperf_res/"
 THREADS = []
 
-class SmartFormatter(argparse.HelpFormatter):
-    """
-    Class that implements a better formatter for the command line help text
-    """
-
-    def _split_lines(self, text, width):
-        """
-        Makes sure that every help string that starts with
-        'R|' is formatted so that '\n' is properly rendered
-        as a new line
-        """
-        if text.startswith('R|'):
-            return text[2:].splitlines()
-        return argparse.HelpFormatter._split_lines(self, text, width)
-
+# Utility method that checks if a versions.json file exists.
+# If it does, it loads it, otherwise it creates it and dumps the
+# versions dictionary into it. This is used as a checkpoint in case
+# the script is interrupted and needs to be restarted.
 def check_file(versions):
     if restart:
         print("Starting over. Dumping versions.json file.")
@@ -76,15 +57,17 @@ def check_file(versions):
             print("File does not exist - Dumped")
     return new_versions
 
+# Utility method that sends a message to a telegram bot
+# Used to check the status of tests remotely since they take a long time
 def send_message(message):
     if telegram:
         send = tel.send(messages=[message], parse_mode="Markdown",
                         disable_web_page_preview=True, conf=f'./telegram.conf')
         asyncio.run(send)
 
-# Metodo che controlla che ogni versione specificata sia installata sul sistema.
-# Se non lo è la installa, e se il processo di installazione fallisce skippa
-# quella versione rimuovendola dall'elenco di versioni da testare.
+# Method that checks if every specified version is installed on the system.
+# If it isn't, it installs it, and if the installation process fails it skips
+# that version removing it from the list of versions to test.
 def check_versions(versions):
     message=f"Checking all versions are installed along with required packages"
     send_message(message)
@@ -94,15 +77,19 @@ def check_versions(versions):
     for version in temp.keys():
         version = version.replace("nogil-3.9.10-1_0","nogil-3.9.10-1").replace("nogil-3.9.10-1_1","nogil-3.9.10-1")
         if not os.path.exists(f"{os.getenv('HOME')}/.pyenv/versions/{version}"):
-            print(f"Version {version} not installed. Skipping...")
-            del versions[version]
-            continue
-            #res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True, capture_output = capture_output)
-        
-        print(f"Version {version} installed")
+            res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True, capture_output = capture_output)
+            if res1.returncode != 0:
+                print(f"Version {version} not installed. Skipping...")
+                del versions[version]
+            else:
+                print(f"Version {version} installed")
+        else:
+            print(f"Version {version} found")
         
     return versions
 
+# Method that saves the given results in a csv file in the 
+# specified path, used by the multi_thread() method
 def save_res(version, times, memories, path):
     
     if times != {} and times is not None:
@@ -121,6 +108,7 @@ def save_res(version, times, memories, path):
                 to_insert.extend(memories[version])
                 writer.writerow(to_insert)
 
+# Method that updates the versions.json file when each test for each version is completed
 def update_versions(versions):
     global debug
     if debug:
@@ -130,6 +118,9 @@ def update_versions(versions):
         versions_json = json.dumps(versions, indent=4)
         f.write(versions_json)
 
+# Method used in the multi_thread() method to run the fib.py script with
+# the specified number of threads and iterations. The results are then passed
+# to the save_res() method to save them in a csv file.
 def exec_threads(version, THREADS, LOOPS_PER_THREAD, path):
     times = []
     memories = []
@@ -221,58 +212,7 @@ def single_thread(versions):
     except Exception as e:
         print(e)
 
-# Test multi thread
-# Variabili per definire quanti thread e quanti loop per thread
-def multi_thread(versions):
-    global date_time_str, debug, THREADS, results_path
-    path=f"{results_path}{date_time_str}/multi_thread"
-    Path(path).mkdir(parents=True, exist_ok=True)
-
-    print("\nStarting multi thread analysis...")
-    if os.environ.get('THREADS') is None:
-        print("\nTHREADS NUMBER NOT SPECIFIED\nAborting...")
-        return 
-    
-    if os.environ.get('ITERS') is None:
-        print("\nITERS NUMBER NOT SPECIFIED\nAborting...")
-        return 
-
-    LOOPS_PER_THREAD = int(os.getenv('ITERS'))
-
-    times = {}
-    memories = {}
-    for version, done in versions.items():
-        
-        if done['multi_thread']:
-            continue
-        
-        message=f"Multi thread analysis for {version} started"
-        send_message(message)
-        print(message)
-        #send_message(f"Multi thread analysis for {version} started")
-        # Se non è nogil calcola i tempi normalmente
-        if version == "nogil-3.9.10-1_0":
-            os.environ["PYTHONGIL"] = '0'
-        
-        if version == "nogil-3.9.10-1_1":
-            os.environ["PYTHONGIL"] = '1'
-
-        res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD, path)
-        times[f"{version}"] = res_time
-        memories[f"{version}"] = res_mem
-        save_res(version, times, memories, path)
-        
-        #send_message(f"Done")
-
-        versions[version]['multi_thread'] = True
-        update_versions(versions)
-        print("\n")
-    
-    message=f"Multi thread analysis done."
-    send_message(message)
-    print(message)
-
-# Test memoria multi thread
+# Test single thread memory usage
 def memory_single_thread(versions):
     global date_time_str, debug, results_path
     path=f"{results_path}{date_time_str}/memory_single_thread"
@@ -334,7 +274,61 @@ def memory_single_thread(versions):
         print("Resetting system...\n")
         subprocess.run(f"pyperf system reset", shell=True, capture_output = capture_output)
 
+# Test multi thread cpu performance and memory usage
+def multi_thread(versions):
+    global date_time_str, debug, THREADS, results_path
+    path=f"{results_path}{date_time_str}/multi_thread"
+    Path(path).mkdir(parents=True, exist_ok=True)
 
+    print("\nStarting multi thread analysis...")
+    if os.environ.get('THREADS') is None:
+        print("\nTHREADS NUMBER NOT SPECIFIED\nAborting...")
+        return 
+    
+    if os.environ.get('ITERS') is None:
+        print("\nITERS NUMBER NOT SPECIFIED\nAborting...")
+        return 
+
+    LOOPS_PER_THREAD = int(os.getenv('ITERS'))
+
+    times = {}
+    memories = {}
+    for version, done in versions.items():
+        
+        if done['multi_thread']:
+            continue
+        
+        message=f"Multi thread analysis for {version} started"
+        send_message(message)
+        print(message)
+        #send_message(f"Multi thread analysis for {version} started")
+        # Se non è nogil calcola i tempi normalmente
+        if version == "nogil-3.9.10-1_0":
+            os.environ["PYTHONGIL"] = '0'
+        
+        if version == "nogil-3.9.10-1_1":
+            os.environ["PYTHONGIL"] = '1'
+
+        res_time, res_mem = exec_threads(version, THREADS, LOOPS_PER_THREAD, path)
+        times[f"{version}"] = res_time
+        memories[f"{version}"] = res_mem
+        save_res(version, times, memories, path)
+        
+        #send_message(f"Done")
+
+        versions[version]['multi_thread'] = True
+        update_versions(versions)
+        print("\n")
+    
+    message=f"Multi thread analysis done."
+    send_message(message)
+    print(message)
+
+# Main method that
+# - Checks the env variables and sets the global variables
+# - Loads the versions dictionary from the versions.json file
+# - Checks if the specified Python versions are installed
+# - Runs the single_thread, memory_single_thread and multi_thread tests
 def main():
     global debug, verbose, THREADS, capture_output, restart, telegram
 
@@ -360,46 +354,16 @@ def main():
 
     capture_output = not verbose
     send_message('#' * 20)
-    versions = {
-        "3.9.10": {
-            "single_thread": False,
-            "single_thread_memory": False,
-            "multi_thread": False
-        },
-        "nogil-3.9.10-1_0": {
-            "single_thread": False,
-            "single_thread_memory": False,
-            "multi_thread": False
-        },
-        "nogil-3.9.10-1_1": {
-            "single_thread": False,
-            "single_thread_memory": False,
-            "multi_thread": False
-        },
-        "3.9.18": {
-            "single_thread": False,
-            "single_thread_memory": False,
-            "multi_thread": False
-        },
-        "3.10.13": {
-            "single_thread": False,
-            "single_thread_memory": False,
-            "multi_thread": False
-        },
-        "3.11.8": {
-            "single_thread": False,
-            "single_thread_memory": False,
-            "multi_thread": False
-        },
-        "3.12.2": {
-            "single_thread": False,
-            "single_thread_memory": False,
-            "multi_thread": False
-        }
-    }
+    
+    versions = ["3.9.10", "nogil-3.9.10-1_0", "nogil-3.9.10-1_1", "3.9.18", "3.10.13", "3.11.8", "3.12.2"]
+    tests_dict = {"single_thread": False, "single_thread_memory": False, "multi_thread": False}
+    temp = dict()
+    for vers in versions:
+        temp[vers] = tests_dict.copy()
+        for test in ["single_thread", "single_thread_memory", "multi_thread"]:
+            temp[vers][test] = False
 
-    #Path(f"{os.getenv('HOME')}/NoGILExperiments/images").mkdir(parents=True, exist_ok=True)
-    #Path(f"{os.getenv('HOME')}/NoGILExperiments/images/{date_time_str}").mkdir(parents=True, exist_ok=True)
+    versions = temp
 
     MAX_THREADS = int(os.getenv('THREADS'))
 

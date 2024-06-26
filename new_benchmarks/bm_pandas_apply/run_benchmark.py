@@ -2,29 +2,30 @@ import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing as mp
 import numpy as np
-import time
+import pyperf
+
+def copy_row(row):
+    return [int(value + 0) for value in row]
 
 def long_func(s):
-    for i in range(5000000):
-        pass
+    s = copy_row(s)
+    for i in range(len(list(s))):
+        for j in range(2000):
+            s[i] = s[i] + 1
     return s
 
-def parallel_apply(df, func, axis=1):
-    if axis == 1:
-        with ThreadPoolExecutor(max_workers=mp.cpu_count()) as executor:
-            results = list(executor.map(func, [row for _, row in df.iterrows()]))
-        return pd.DataFrame(results, index=df.index)
-    else:
-        raise NotImplementedError("Only axis=1 is supported.")
+def run_bench():
+    df = pd.DataFrame(np.ones((500, 500), dtype=int))
+    
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(long_func, [row for _, row in df.iterrows()]))
+    parallel_df = pd.DataFrame(results, index=df.index)
 
-df = pd.DataFrame(np.ones((500, 500), dtype=str))
-start = time.time()
-new_df = df.copy()
-new_df.apply(long_func, axis=1)
-print(time.time()-start)
+def main():
+    runner = pyperf.Runner()
+    runner.metadata['description'] = "Parallel pandas apply"
 
-start = time.time()
-with ThreadPoolExecutor() as executor:
-    results = list(executor.map(long_func, [row for _, row in df.iterrows()]))
-parallel_df = pd.DataFrame(results, index=df.index)
-print(time.time()-start)
+    runner.bench_func('pandas_apply', run_bench)
+
+if __name__ == "__main__":
+    run_bench()

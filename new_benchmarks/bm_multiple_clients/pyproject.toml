@@ -1,0 +1,9 @@
+[project]
+name = "pyperformance_bm_multiple_clients"
+requires-python = ">=3.8"
+dependencies = ["pyperf"]
+urls = {repository = "https://github.com/python/pyperformance"}
+version = "0.0.1"
+
+[tool.pyperformance]
+name = "pyperformance_bm_multiple_clients"

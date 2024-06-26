@@ -2,5 +2,9 @@
 
 name	metafile
 fib	<local>
+matrix_multiplication_shared	<local>
+matrix_multiplication_not_shared	<local>
+pandas_apply	<local>
+multiple_clients	<local>
 
 [group default]
