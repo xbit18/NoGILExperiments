@@ -165,8 +165,6 @@ def single_thread(versions):
             subprocess.run(f"pyperf system tune", shell=True, capture_output = capture_output)
 
         for version, done in versions.items():
-            if version == "3.13.0b2":
-                os.environ["PYTHON_GIL"] = '0'
 
             if done['single_thread']:
                 continue
@@ -182,6 +180,10 @@ def single_thread(versions):
             if debug:
                 command += " --benchmarks=2to3"
 
+            if version == "3.13.0b2":
+                os.environ["PYTHON_GIL"] = '0'
+                command += " --inherit-environ=PYTHON_GIL"
+            
             if version == "nogil-3.9.10-1_0":
                 os.environ["PYTHONGIL"] = "0"
                 command += " --inherit-environ=PYTHONGIL"
@@ -232,9 +234,6 @@ def memory_single_thread(versions):
     for version, done in versions.items():
         if done['single_thread_memory']:
             continue
-
-        if version == "3.13.0b2":
-                os.environ["PYTHON_GIL"] = '0'
         
         message = f"Single thread memory analysis for {version} started"
         send_message(message)
@@ -258,6 +257,10 @@ def memory_single_thread(versions):
             os.environ["PYTHONGIL"] = "1"
             command += " --inherit-environ=PYTHONGIL"
         
+        if version == "3.13.0b2":
+                os.environ["PYTHON_GIL"] = '0'
+                command += " --inherit-environ=PYTHON_GIL"
+            
         print("Running command: ", command, "\n")
 
         if debug:
