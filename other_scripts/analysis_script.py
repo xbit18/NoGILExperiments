@@ -2,8 +2,6 @@ import os
 import json
 import numpy as np
 import pandas as pd
-import multiprocessing
-import datetime
 from pathlib import Path
 import matplotlib.pyplot as plt
 
@@ -56,7 +54,6 @@ def analyse_single_thread(dir):
                 for run in bench:
                     vals = run['values']
                     times.extend(vals)
-                # print(times)
                 avg_time = np.average(times)
                 all_times.append(round(avg_time, 5))
             else:
@@ -89,11 +86,30 @@ def analyse_single_thread(dir):
     plt.legend(labels)
     ticks = [i for i in range(len(times))]
     plt.xticks(ticks, labels=labels)
-    plt.savefig(f"{dir}/images/confronto_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
-
+    plt.savefig(f"{dir}/images/comparison_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    
+    for index, row in times_df.iterrows():
+        row = list(row)
+        title = row[0]
+        results = row[1:]
+        
+        labels = list(times_df.columns)[1:]
+        colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff"]
+        colors.reverse()
+        plt.figure(figsize=(10, 7))
+        for i in range(len(labels)):
+            plt.bar(i, results[i], color=colors.pop())
+        plt.title(f"Execution Time for {title} benchmark")
+        plt.xlabel("Python Versions")
+        plt.ylabel("Execution Time")
+        plt.legend(labels)
+        ticks = [i for i in range(len(times))]
+        plt.xticks(ticks, labels=labels)
+        plt.savefig(f"{dir}/images/all_tests_single_thread/{title}_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+        plt.close()
+    
 def analyse_memory_single_thread(dir):
     test_path = dir + "/memory_single_thread/"
-
 
     files_to_process = []
     for file_name in os.listdir(test_path):
@@ -137,7 +153,6 @@ def analyse_memory_single_thread(dir):
                 for run in bench:
                     vals = run['values']
                     mems.extend(vals)
-                # print(times)
                 avg_mem = np.average(mems)
                 avg_mem = avg_mem/1024/1024
                 all_mems.append(round(avg_mem, 1))
@@ -171,7 +186,27 @@ def analyse_memory_single_thread(dir):
     plt.legend(labels)
     ticks = [i for i in range(len(mems))]
     plt.xticks(ticks, labels=labels)
-    plt.savefig(f"{dir}/images/confronto_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"{dir}/images/comparison_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+
+    for index, row in mems_df.iterrows():
+        row = list(row)
+        title = row[0]
+        results = row[1:]
+        
+        labels = list(mems_df.columns)[1:]
+        colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff"]
+        colors.reverse()
+        plt.figure(figsize=(10, 7))
+        for i in range(len(labels)):
+            plt.bar(i, results[i], color=colors.pop())
+        plt.title(f"Peak Memory Usage (MB) for {title} benchmark")
+        plt.xlabel("Python Versions")
+        plt.ylabel("Memory Usage (MB)")
+        plt.legend(labels)
+        ticks = [i for i in range(len(mems))]
+        plt.xticks(ticks, labels=labels)
+        plt.savefig(f"{dir}/images/all_tests_single_thread_memory/{title}_single_thread_memory.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+        plt.close()
 
 def analyse_multi_thread(dir):
     test_path = dir + "/multi_thread"
@@ -182,7 +217,7 @@ def analyse_multi_thread(dir):
     df = df[1:]  # take the data less the header row
     df.columns = new_header  # set the header row as the df header
 
-    plt.figure(figsize=(7, 7))
+    plt.figure(figsize=(10, 7))
     columns = list(df.columns)
     for col in range(len(columns)):
         val = columns[col].replace("_0", "_active").replace("_1", "_notactive")
@@ -202,21 +237,17 @@ def analyse_multi_thread(dir):
         plt.plot(THREADS, vals, color=color)
         colors.insert(0,color)
 
-    #color = colors.pop()
-    #plt.axvline(x=64, color=color, linestyle='--')
-    #colors.insert(0,color)
     plt.title("Multi Thread Memory Usage")
     plt.xlabel("Number of threads")
-    plt.ylabel("Execution memory in bytes")
+    plt.ylabel("Memory Usage in Bytes")
     legend = columns.copy()
     plt.legend(legend)
     plt.xlim(THREADS[0], THREADS[-1])
     ticks = THREADS
-    #ticks.append(64)
     ticks = list(set(ticks))
     ticks.sort()
     plt.xticks(ticks)
-    plt.savefig(f"{dir}/images/confronto_multi_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"{dir}/images/comparison_multi_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
     arr = np.genfromtxt(f'{test_path}/times.csv', delimiter=',',dtype=str)
     df = pd.DataFrame(arr.T)
@@ -224,7 +255,7 @@ def analyse_multi_thread(dir):
     df = df[1:]  # take the data less the header row
     df.columns = new_header  # set the header row as the df header
 
-    plt.figure(figsize=(7, 7))
+    plt.figure(figsize=(10, 7))
     columns = list(df.columns)
     for col in range(len(columns)):
         val = columns[col].replace("_0", "_active").replace("_1", "_notactive")
@@ -239,9 +270,6 @@ def analyse_multi_thread(dir):
         plt.plot(THREADS, vals, color=color)
         colors.insert(0,color)
     
-    #color = colors.pop()
-    #plt.axvline(x=64, color=color, linestyle='--')
-    #colors.insert(0,color)
     plt.title("Multi Thread Execution Time")
     plt.xlabel("Number of threads")
     plt.ylabel("Execution time in seconds")
@@ -250,19 +278,19 @@ def analyse_multi_thread(dir):
     plt.legend(legend)
     plt.xlim(THREADS[0], THREADS[-1])
     ticks = THREADS
-    #ticks.append(64)
     ticks = list(set(ticks))
     ticks.sort()
     plt.xticks(ticks)
-    plt.savefig(f"{dir}/images/confronto_multi_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    plt.savefig(f"{dir}/images/comparison_multi_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
 def main():
-    
     results_path = "results_to_analyse/"
     all_subdirs = [results_path+d for d in os.listdir(results_path) if os.path.isdir(results_path+d) and d!="vecchi_dati"]
     latest_subdir = max(all_subdirs, key=os.path.getmtime)
 
     Path(f"{latest_subdir}/images").mkdir(parents=True, exist_ok=True)
+    Path(f"{latest_subdir}/images/all_tests_single_thread").mkdir(parents=True, exist_ok=True)
+    Path(f"{latest_subdir}/images/all_tests_single_thread_memory").mkdir(parents=True, exist_ok=True)
 
     analyse_single_thread(latest_subdir)
     analyse_memory_single_thread(latest_subdir)

@@ -165,6 +165,9 @@ def single_thread(versions):
             subprocess.run(f"pyperf system tune", shell=True, capture_output = capture_output)
 
         for version, done in versions.items():
+            if version == "3.13.0b2":
+                os.environ["PYTHON_GIL"] = '0'
+
             if done['single_thread']:
                 continue
             
@@ -229,6 +232,9 @@ def memory_single_thread(versions):
     for version, done in versions.items():
         if done['single_thread_memory']:
             continue
+
+        if version == "3.13.0b2":
+                os.environ["PYTHON_GIL"] = '0'
         
         message = f"Single thread memory analysis for {version} started"
         send_message(message)
@@ -297,6 +303,9 @@ def multi_thread(versions):
         
         if done['multi_thread']:
             continue
+
+        if version == "3.13.0b2":
+                os.environ["PYTHON_GIL"] = '0'
         
         message=f"Multi thread analysis for {version} started"
         send_message(message)
@@ -355,7 +364,7 @@ def main():
     capture_output = not verbose
     send_message('#' * 20)
     
-    versions = ["3.9.10", "nogil-3.9.10-1_0", "nogil-3.9.10-1_1", "3.9.18", "3.10.13", "3.11.8", "3.12.2"]
+    versions = ["3.9.10", "nogil-3.9.10-1_0", "nogil-3.9.10-1_1", "3.9.18", "3.10.13", "3.11.8", "3.12.2", "3.13.0b2"]
     tests_dict = {"single_thread": False, "single_thread_memory": False, "multi_thread": False}
     temp = dict()
     for vers in versions:

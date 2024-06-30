@@ -5,14 +5,14 @@
         "multi_thread": true
     },
     "nogil-3.9.10-1_0": {
-        "single_thread": false,
-        "single_thread_memory": false,
-        "multi_thread": false
+        "single_thread": true,
+        "single_thread_memory": true,
+        "multi_thread": true
     },
     "nogil-3.9.10-1_1": {
-        "single_thread": false,
-        "single_thread_memory": false,
-        "multi_thread": false
+        "single_thread": true,
+        "single_thread_memory": true,
+        "multi_thread": true
     },
     "3.9.18": {
         "single_thread": true,
@@ -33,5 +33,10 @@
         "single_thread": true,
         "single_thread_memory": true,
         "multi_thread": true
+    },
+    "3.13.0b2":{
+        "single_thread": false,
+        "single_thread_memory": false,
+        "multi_thread": false
     }
 }
