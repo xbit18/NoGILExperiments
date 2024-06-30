@@ -34,7 +34,7 @@
         "single_thread_memory": true,
         "multi_thread": true
     },
-    "3.13.0b2":{
+    "3.13.0b3":{
         "single_thread": false,
         "single_thread_memory": false,
         "multi_thread": false
