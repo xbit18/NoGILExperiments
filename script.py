@@ -74,8 +74,12 @@ def check_versions(versions):
     print(message)
 
     temp = versions.copy()
-    for version in temp.keys():
+    for version, done in temp.items():
+        if done['single_thread'] and done['single_thread_memory'] and done['multi_thread']:
+            continue
+        
         version = version.replace("nogil-3.9.10-1_0","nogil-3.9.10-1").replace("nogil-3.9.10-1_1","nogil-3.9.10-1")
+        
         if not os.path.exists(f"{os.getenv('HOME')}/.pyenv/versions/{version}"):
             res1 = subprocess.run(f"env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install {version}", shell=True, capture_output = capture_output)
             if res1.returncode != 0:
