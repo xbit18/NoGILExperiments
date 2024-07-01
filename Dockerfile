@@ -23,7 +23,7 @@ RUN python -m pip install pyperformance
 # RUN $HOME/.pyenv/versions/3.10.13/bin/python -m pip install pyperformance
 # RUN $HOME/.pyenv/versions/3.11.8/bin/python -m pip install pyperformance
 # RUN $HOME/.pyenv/versions/3.12.2/bin/python -m pip install pyperformance
-# RUN pip install telegram_send
+RUN pip install telegram_send
 
 ADD ./script.py /root
 ADD ./fib.py /root
