@@ -340,6 +340,73 @@ def multi_thread(versions):
     send_message(message)
     print(message)
 
+def new_benchmarks(versions):
+    try:
+        global date_time_str, debug, results_path
+        path=f"{results_path}{date_time_str}/new_benchmarks"
+        Path(path).mkdir(parents=True, exist_ok=True)
+
+        message=f"Starting new_benchmark analysis..."
+        send_message(message)
+        print(message)
+
+        if os.getenv('IS_HOST_MACOS') == '0':
+            print("\nTuning system...")
+            subprocess.run(f"pyperf system tune", shell=True, capture_output = capture_output)
+
+        for version, done in versions.items():
+
+            if done['new_benchmarks']:
+                continue
+            
+            message=f"New benchmarks for {version} started"
+            send_message(message)
+            print(message)
+            
+            version_str = version.replace("nogil-3.9.10-1_0","nogil-3.9.10-1").replace("nogil-3.9.10-1_1","nogil-3.9.10-1")
+            output_path = f"{path}/{version}.json"
+            command = f"pyperformance run --python={os.getenv('HOME')}/.pyenv/versions/{version_str}/bin/python --manifest=./new_benchmarks/MANIFEST -o {output_path}"
+            
+            if debug:
+                command += " --benchmarks=2to3"
+
+            if version == "3.13.0b3":
+                os.environ["PYTHON_GIL"] = '0'
+                command += " --inherit-environ=PYTHON_GIL"
+            
+            if version == "nogil-3.9.10-1_0":
+                os.environ["PYTHONGIL"] = "0"
+                command += " --inherit-environ=PYTHONGIL"
+            
+            if version == "nogil-3.9.10-1_1":
+                os.environ["PYTHONGIL"] = "1"
+                command += " --inherit-environ=PYTHONGIL"
+            
+            print("Running command: ", command, "\n")
+            
+            if debug:
+                continue
+            
+            subprocess.run(
+                command,
+                shell=True, capture_output = capture_output)
+
+            print("Done")
+            send_message(f"Done")
+
+            versions[version]['new_benchmarks'] = True
+            update_versions(versions)
+
+        message=f"New benchmarks done"
+        send_message(message)
+        print(message+"\n")
+
+        if os.getenv('IS_HOST_MACOS') == '0':
+            print("Resetting system...\n")
+            subprocess.run("pyperf system reset", shell=True, capture_output = capture_output)
+    except Exception as e:
+        print(e)
+
 # Main method that
 # - Checks the env variables and sets the global variables
 # - Loads the versions dictionary from the versions.json file
@@ -347,11 +414,6 @@ def multi_thread(versions):
 # - Runs the single_thread, memory_single_thread and multi_thread tests
 def main():
     global debug, verbose, THREADS, capture_output, restart, telegram
-
-    if os.getenv('IS_HOST_MACOS') == '1':
-        from dotenv import load_dotenv
-        dotenv_path = Path('./.env')
-        load_dotenv(dotenv_path=dotenv_path)
 
     print("Starting up...")
     try:
@@ -372,7 +434,7 @@ def main():
     send_message('#' * 20)
     
     versions = ["3.9.10", "nogil-3.9.10-1_0", "nogil-3.9.10-1_1", "3.9.18", "3.10.13", "3.11.8", "3.12.2", "3.13.0b3"]
-    tests_dict = {"single_thread": False, "single_thread_memory": False, "multi_thread": False}
+    tests_dict = {"single_thread": False, "single_thread_memory": False, "multi_thread": False, "new_benchmarks": False}
     temp = dict()
     for vers in versions:
         temp[vers] = tests_dict.copy()
@@ -395,6 +457,7 @@ def main():
     single_thread(versions)
     memory_single_thread(versions)
     multi_thread(versions)
+    new_benchmarks(versions)
 
 if __name__ == '__main__':
     main()

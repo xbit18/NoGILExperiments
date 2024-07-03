@@ -34,6 +34,7 @@ def analyse_single_thread(dir):
         '3.9.10_processed.json': '3.9.10',
         'nogil-3.9.10-1_1_processed.json': 'nogil-3.9.10_1',
         'nogil-3.9.10-1_0_processed.json': 'nogil-3.9.10_0',
+        '3.13.0b3_processed.json': '3.13.0b3'
     }
 
     # Get complete list of benchmarks
@@ -61,7 +62,7 @@ def analyse_single_thread(dir):
         df[columns[file].replace('.json', '')] = all_times
 
     times_df = pd.DataFrame(df)
-    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10_0', 'nogil-3.9.10_1', '3.9.18', '3.10.13', '3.11.8', '3.12.2']
+    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10_0', 'nogil-3.9.10_1', '3.9.18', '3.10.13', '3.11.8', '3.12.2', '3.13.0b3']
     times_df = times_df[columns]
     times_df_notnull = times_df.dropna()
     times_df_notnull.reset_index(inplace=True, drop=True)
@@ -73,17 +74,16 @@ def analyse_single_thread(dir):
         times.append(avg_time)
 
     plt.title("Single Thread Execution Time")
-    plt.figure(figsize=(10, 7))
+    plt.figure(figsize=(12, 7))
     labels = list(times_df.columns)[1:]
 
-    colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff"]
+    colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
     colors.reverse()
     for i in range(len(labels)):
         plt.bar(i, times[i], color=colors.pop())
     plt.title("Single Thread Execution Time")
     plt.xlabel("Python Versions")
     plt.ylabel("Avg Execution Time")
-    plt.legend(labels)
     ticks = [i for i in range(len(times))]
     plt.xticks(ticks, labels=labels)
     plt.savefig(f"{dir}/images/comparison_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
@@ -94,15 +94,14 @@ def analyse_single_thread(dir):
         results = row[1:]
         
         labels = list(times_df.columns)[1:]
-        colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff"]
+        colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
         colors.reverse()
         plt.figure(figsize=(10, 7))
         for i in range(len(labels)):
             plt.bar(i, results[i], color=colors.pop())
-        plt.title(f"Execution Time for {title} benchmark")
+        plt.title(f"Execution Time: {title}")
         plt.xlabel("Python Versions")
         plt.ylabel("Execution Time")
-        plt.legend(labels)
         ticks = [i for i in range(len(times))]
         plt.xticks(ticks, labels=labels)
         plt.savefig(f"{dir}/images/all_tests_single_thread/{title}_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
@@ -133,6 +132,7 @@ def analyse_memory_single_thread(dir):
         '3.9.10_processed.json': '3.9.10',
         'nogil-3.9.10-1_1_processed.json': 'nogil-3.9.10_1',
         'nogil-3.9.10-1_0_processed.json': 'nogil-3.9.10_0',
+        '3.13.0b3_processed.json': '3.13.0b3'
     }
 
     # Get complete list of benchmarks
@@ -161,7 +161,7 @@ def analyse_memory_single_thread(dir):
         df[columns[file].replace('.json', '')] = all_mems
         
     mems_df = pd.DataFrame(df)
-    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10_0', 'nogil-3.9.10_1', '3.9.18', '3.10.13', '3.11.8', '3.12.2']
+    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10_0', 'nogil-3.9.10_1', '3.9.18', '3.10.13', '3.11.8', '3.12.2', '3.13.0b3']
     mems_df = mems_df[columns]
     mems_df_notnull = mems_df.dropna()
     mems_df_notnull.reset_index(inplace=True, drop=True)
@@ -172,10 +172,10 @@ def analyse_memory_single_thread(dir):
         avg_mem = np.average(mems_df[col])
         mems.append(avg_mem)
 
-    plt.figure(figsize=(10, 7))
+    plt.figure(figsize=(12, 7))
     labels = list(mems_df.columns)[1:]
 
-    colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff"]
+    colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
     colors.reverse()
     for i in range(len(labels)):
         plt.bar(i, mems[i], color=colors.pop())
@@ -183,7 +183,6 @@ def analyse_memory_single_thread(dir):
     plt.title("Single Thread Memory Usage")
     plt.xlabel("Python Versions")
     plt.ylabel("Avg Memory Usage (MB)")
-    plt.legend(labels)
     ticks = [i for i in range(len(mems))]
     plt.xticks(ticks, labels=labels)
     plt.savefig(f"{dir}/images/comparison_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
@@ -194,15 +193,14 @@ def analyse_memory_single_thread(dir):
         results = row[1:]
         
         labels = list(mems_df.columns)[1:]
-        colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff"]
+        colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
         colors.reverse()
         plt.figure(figsize=(10, 7))
         for i in range(len(labels)):
             plt.bar(i, results[i], color=colors.pop())
-        plt.title(f"Peak Memory Usage (MB) for {title} benchmark")
+        plt.title(f"Peak Memory Usage (MB): {title}")
         plt.xlabel("Python Versions")
         plt.ylabel("Memory Usage (MB)")
-        plt.legend(labels)
         ticks = [i for i in range(len(mems))]
         plt.xticks(ticks, labels=labels)
         plt.savefig(f"{dir}/images/all_tests_single_thread_memory/{title}_single_thread_memory.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
@@ -228,7 +226,7 @@ def analyse_multi_thread(dir):
     for i in range(runs):
         THREADS.append(2**i)
 
-    colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff"]
+    colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
     colors.reverse()
 
     for col in df.columns:
@@ -261,7 +259,7 @@ def analyse_multi_thread(dir):
         val = columns[col].replace("_0", "_active").replace("_1", "_notactive")
         columns[col] = val
 
-    colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff"]
+    colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
     colors.reverse()
 
     for col in df.columns:
