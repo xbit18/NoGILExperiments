@@ -407,6 +407,71 @@ def new_benchmarks(versions):
     except Exception as e:
         print(e)
 
+def new_benchmarks_memory(versions):
+    global date_time_str, debug, results_path
+    path=f"{results_path}{date_time_str}/new_benchmarks_memory"
+    Path(path).mkdir(parents=True, exist_ok=True)
+
+    message=f"Starting new benchmarks memory analysis..."
+    send_message(message)
+    print(message)
+
+    if os.getenv('IS_HOST_MACOS') == '0':
+        print("Tuning system...")
+        subprocess.run(f"pyperf system tune", shell=True, capture_output = capture_output)
+
+    for version, done in versions.items():
+        if done['new_benchmarks_memory']:
+            continue
+        
+        message = f"New benchmarks memory analysis for {version} started"
+        send_message(message)
+        print(message)
+        
+        version_str = version.replace("nogil-3.9.10-1_0","nogil-3.9.10-1").replace("nogil-3.9.10-1_1","nogil-3.9.10-1")
+        output_path = f"{path}/{version}.json"
+        command = f"{os.getenv('HOME')}/.pyenv/versions/{version_str}/bin/python -m pyperformance run --manifest=./new_benchmarks/MANIFEST -m -o {output_path}"
+        
+        if not debug and "nogil-3.9.10-1" in version:
+            command += " --benchmarks=-gc_traversal"
+
+        if debug:
+            command += " --benchmarks=2to3"
+
+        if version == "nogil-3.9.10-1_0":
+                os.environ["PYTHONGIL"] = "0"
+                command += " --inherit-environ=PYTHONGIL"
+            
+        if version == "nogil-3.9.10-1_1":
+            os.environ["PYTHONGIL"] = "1"
+            command += " --inherit-environ=PYTHONGIL"
+        
+        if version == "3.13.0b3":
+                os.environ["PYTHON_GIL"] = '0'
+                command += " --inherit-environ=PYTHON_GIL"
+            
+        print("Running command: ", command, "\n")
+
+        if debug:
+            continue
+
+        subprocess.run(
+            command,
+            shell=True, capture_output = capture_output)
+
+        send_message(f"Done")
+
+        versions[version]['new_benchmarks_memory'] = True
+        update_versions(versions)
+
+    message = f"New benchmarks memory analysis done"
+    send_message(message)
+    print(message+"\n")
+    
+    if os.getenv('IS_HOST_MACOS') == '0':
+        print("Resetting system...\n")
+        subprocess.run(f"pyperf system reset", shell=True, capture_output = capture_output)
+
 # Main method that
 # - Checks the env variables and sets the global variables
 # - Loads the versions dictionary from the versions.json file
@@ -434,13 +499,11 @@ def main():
     send_message('#' * 20)
     
     versions = ["3.9.10", "nogil-3.9.10-1_0", "nogil-3.9.10-1_1", "3.9.18", "3.10.13", "3.11.8", "3.12.2", "3.13.0b3"]
-    tests_dict = {"single_thread": False, "single_thread_memory": False, "multi_thread": False, "new_benchmarks": False}
+    tests = ["single_thread", "single_thread_memory", "multi_thread", "new_benchmarks", "new_benchmarks_memory"]
+    tests_dict = {"single_thread": False, "single_thread_memory": False, "multi_thread": False, "new_benchmarks": False, "new_benchmarks_memory": False}
     temp = dict()
     for vers in versions:
-        temp[vers] = tests_dict.copy()
-        for test in ["single_thread", "single_thread_memory", "multi_thread"]:
-            temp[vers][test] = False
-
+        temp[vers] = {i: False for i in tests}
     versions = temp
 
     MAX_THREADS = int(os.getenv('THREADS'))
@@ -458,6 +521,7 @@ def main():
     memory_single_thread(versions)
     multi_thread(versions)
     new_benchmarks(versions)
+    new_benchmarks_memory(versions)
 
 if __name__ == '__main__':
     main()
