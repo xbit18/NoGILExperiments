@@ -13,7 +13,7 @@ ENV PYENV_ROOT="${HOME}/.pyenv"
 ENV PATH="${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:${PATH}"
 
 RUN env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install 3.9.10 3.9.18 nogil-3.9.10-1 3.10.13 3.11.8 3.12.2
-RUN env PYTHON_CONFIGURE_OPTS='--disable-gil' pyenv install 3.13.0b3
+RUN env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto --disable-gil' pyenv install 3.13.0b3
 RUN pyenv global 3.12.2
 RUN python -m pip install pyperformance
 RUN $HOME/.pyenv/versions/3.9.10/bin/python -m pip install pyperformance
