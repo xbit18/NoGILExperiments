@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import platform
+import os
+import signal
 
 app = Flask(__name__)
 
@@ -23,6 +25,12 @@ def handle_task():
     future = executor.submit(cpu_bound_task)
     result = future.result()  # Wait for the task to complete
     return jsonify({'result': result})
+
+@app.route('/shutdown', methods=['GET'])
+def shutdown():
+   print("Shutting down gracefully...")
+   os.kill(os.getpid(), signal.SIGINT)
+   return 'Server shutting down...'
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

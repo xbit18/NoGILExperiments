@@ -15,7 +15,7 @@ import requests
 def start_flask_server():
     # Start Flask server in a subprocess
     version = platform.python_version()
-    command = [f'/Users/giacomo/.pyenv/versions/{version}/bin/python ./server.py']
+    command = [f'~/.pyenv/versions/{version}/bin/python ./server.py']
     
     # print(command)
     proc = subprocess.Popen(command, cwd='new_benchmarks/bm_multiple_clients', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -48,7 +48,7 @@ def run_benchmark():
     start = time.time()
     asyncio.run(simulate_clients())
     end = time.time()
-    # print(f"Handled 8 requests in {end - start:.2f} seconds")
+    #print(f"Handled 8 requests in {end - start:.2f} seconds")
 
 def main():
     # Start Flask server
@@ -73,7 +73,7 @@ def main():
     runner = pyperf.Runner()
     runner.metadata['description'] = "Benchmarking Flask server with client requests"
     runner.bench_func('flask_server', run_benchmark)
-    proc.terminate()
+    requests.get('http://localhost:5000/shutdown')
 
 if __name__ == '__main__':
     main()
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     #         break # if server is not active start it again
 
     # proc = start_flask_server()
-    # #print("Server started with PID:", proc.pid)
+    # print("Server started with PID:", proc.pid)
     # #check if server has started
     # while True:
     #     try:
@@ -93,4 +93,4 @@ if __name__ == '__main__':
     #     except requests.exceptions.ConnectionError:
     #         pass
     # run_benchmark()
-    # proc.terminate()
+    # requests.get('http://localhost:5000/shutdown')

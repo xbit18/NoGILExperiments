@@ -7,7 +7,7 @@ def fib(n):
     return fib(n-1) + fib(n-2)
 
 def run_bench():
-    threads = mp.cpu_count()
+    threads = 16
         
     with ThreadPoolExecutor(max_workers=threads) as executor:
         for _ in range(threads):
