@@ -73,7 +73,10 @@ def main():
     runner = pyperf.Runner()
     runner.metadata['description'] = "Benchmarking Flask server with client requests"
     runner.bench_func('flask_server', run_benchmark)
-    requests.get('http://localhost:5000/shutdown')
+    try:
+        requests.get('http://localhost:5000/shutdown')
+    except Exception:
+        pass
 
 if __name__ == '__main__':
     main()
