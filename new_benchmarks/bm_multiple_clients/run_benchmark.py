@@ -65,7 +65,7 @@ def main():
     #check if server has started
     while True:
         try:
-            requests.get('http://localhost:5000/python').json()
+            requests.get('http://localhost:5000/python')
             break
         except requests.exceptions.ConnectionError:
             pass
