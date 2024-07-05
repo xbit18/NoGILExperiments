@@ -16,12 +16,12 @@ RUN env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto' pyenv install 
 RUN env PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto --disable-gil' pyenv install 3.13.0b3
 RUN pyenv global 3.12.2
 RUN python -m pip install pyperformance
-RUN $HOME/.pyenv/versions/3.9.10/bin/python -m pip install pyperformance requests flask aiohttp numpy=1.26.0 pandas
-RUN $HOME/.pyenv/versions/3.9.18/bin/python -m pip install pyperformance requests flask aiohttp numpy=1.26.0 pandas
-RUN $HOME/.pyenv/versions/nogil-3.9.10-1/bin/python -m pip install pyperformance requests flask aiohttp numpy=1.26.0 pandas
-RUN $HOME/.pyenv/versions/3.10.13/bin/python -m pip install pyperformance requests flask aiohttp numpy=1.26.0 pandas
-RUN $HOME/.pyenv/versions/3.11.8/bin/python -m pip install pyperformance requests flask aiohttp numpy=1.26.0 pandas
-RUN $HOME/.pyenv/versions/3.12.2/bin/python -m pip install requests flask aiohttp numpy=1.26.0 pandas
+RUN $HOME/.pyenv/versions/3.9.10/bin/python -m pip install pyperformance requests flask aiohttp numpy==1.26.0 pandas
+RUN $HOME/.pyenv/versions/3.9.18/bin/python -m pip install pyperformance requests flask aiohttp numpy==1.26.0 pandas
+RUN $HOME/.pyenv/versions/nogil-3.9.10-1/bin/python -m pip install pyperformance requests flask aiohttp numpy==1.26.0 pandas
+RUN $HOME/.pyenv/versions/3.10.13/bin/python -m pip install pyperformance requests flask aiohttp numpy==1.26.0 pandas
+RUN $HOME/.pyenv/versions/3.11.8/bin/python -m pip install pyperformance requests flask aiohttp numpy==1.26.0 pandas
+RUN $HOME/.pyenv/versions/3.12.2/bin/python -m pip install requests flask aiohttp numpy==1.26.0 pandas
 RUN $HOME/.pyenv/versions/3.13.0b3/bin/python -m pip install pyperformance requests flask aiohttp
 RUN pip install telegram_send
 
