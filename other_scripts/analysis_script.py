@@ -281,6 +281,207 @@ def analyse_multi_thread(dir):
     plt.xticks(ticks)
     plt.savefig(f"{dir}/images/comparison_multi_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
 
+def analyse_new_benchmarks(dir):
+    test_path = dir + "/new_benchmarks/"
+
+
+    files_to_process = []
+    for file_name in os.listdir(test_path):
+        if file_name.endswith('.json'):
+            files_to_process.append(file_name)
+
+    processed_files = {}
+    for file in files_to_process:
+        f = open(test_path + file)
+        data = json.load(f)
+        benchmarks = {}
+        for d in data['benchmarks']:
+            benchmarks[d['metadata']['name']] = d['runs'][1:]
+        for key, val in benchmarks.items():
+            for v in val:
+                v.pop('warmups')
+        processed_files[f"{file.replace('.json', '')}_processed.json"] = benchmarks
+
+    columns = {
+        '3.10.13_processed.json': '3.10.13',
+        '3.11.8_processed.json': '3.11.8',
+        '3.12.2_processed.json': '3.12.2',
+        '3.9.18_processed.json': '3.9.18',
+        '3.9.10_processed.json': '3.9.10',
+        'nogil-3.9.10-1_1_processed.json': 'nogil-3.9.10_1',
+        'nogil-3.9.10-1_0_processed.json': 'nogil-3.9.10_0',
+        '3.13.0b3_processed.json': '3.13.0b3'
+    }
+
+    # Get complete list of benchmarks
+    benchmarks = []
+    for file in sorted(processed_files):
+        benchmarks.extend(processed_files[file].keys())
+    benchmarks = sorted(list(set(benchmarks)))
+    
+    df = {}
+    df['Benchmarks'] = benchmarks
+    for file in sorted(processed_files):
+        all_times = []
+        data = processed_files[file]
+        for key in benchmarks:
+            if data.get(key):
+                bench = data[key]
+                times = []
+                for run in bench:
+                    vals = run['values']
+                    times.extend(vals)
+                avg_time = np.average(times)
+                all_times.append(round(avg_time, 5))
+            else:
+                all_times.append(0)
+        df[columns[file].replace('.json', '')] = all_times
+
+    times_df = pd.DataFrame(df)
+    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10_0', 'nogil-3.9.10_1', '3.9.18', '3.10.13', '3.11.8', '3.12.2', '3.13.0b3']
+    times_df = times_df[columns]
+    #times_df_notnull = times_df.dropna()
+    #times_df_notnull.reset_index(inplace=True, drop=True)
+    #times_df = times_df_notnull
+
+    times = []
+    for col in times_df.columns[1:]:
+        avg_time = np.average(times_df[col])
+        times.append(avg_time)
+
+    # plt.title("Single Thread Execution Time")
+    # plt.figure(figsize=(12, 7))
+    # labels = list(times_df.columns)[1:]
+
+    # colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
+    # colors.reverse()
+    # for i in range(len(labels)):
+    #     plt.bar(i, times[i], color=colors.pop())
+    # plt.title("Single Thread Execution Time")
+    # plt.xlabel("Python Versions")
+    # plt.ylabel("Avg Execution Time")
+    # ticks = [i for i in range(len(times))]
+    # plt.xticks(ticks, labels=labels)
+    # plt.savefig(f"{dir}/images/comparison_single_thread.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+    
+    for index, row in times_df.iterrows():
+        row = list(row)
+        title = row[0]
+        results = row[1:]
+        
+        labels = list(times_df.columns)[1:]
+        colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
+        colors.reverse()
+        plt.figure(figsize=(10, 7))
+        for i in range(len(labels)):
+            plt.bar(i, results[i], color=colors.pop())
+        plt.title(f"Execution Time: {title}")
+        plt.xlabel("Python Versions")
+        plt.ylabel("Execution Time")
+        ticks = [i for i in range(len(times))]
+        plt.xticks(ticks, labels=labels)
+        plt.savefig(f"{dir}/images/all_tests_new_benchmarks/{title}.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+        plt.close()
+    
+def analyse_new_benchmarks_memory(dir):
+    test_path = dir + "/new_benchmarks_memory/"
+
+    files_to_process = []
+    for file_name in os.listdir(test_path):
+        if file_name.endswith('.json'):
+            files_to_process.append(file_name)
+
+    processed_files = {}
+    for file in files_to_process:
+        f = open(test_path + file)
+        data = json.load(f)
+        benchmarks = {}
+        for d in data['benchmarks']:
+            benchmarks[d['metadata']['name']] = d['runs'][1:]
+        processed_files[f"{file.replace('.json', '')}_processed.json"] = benchmarks
+
+    columns = {
+        '3.10.13_processed.json': '3.10.13',
+        '3.11.8_processed.json': '3.11.8',
+        '3.12.2_processed.json': '3.12.2',
+        '3.9.18_processed.json': '3.9.18',
+        '3.9.10_processed.json': '3.9.10',
+        'nogil-3.9.10-1_1_processed.json': 'nogil-3.9.10_1',
+        'nogil-3.9.10-1_0_processed.json': 'nogil-3.9.10_0',
+        '3.13.0b3_processed.json': '3.13.0b3'
+    }
+
+    # Get complete list of benchmarks
+    benchmarks = []
+    for file in sorted(processed_files):
+        benchmarks.extend(processed_files[file].keys())
+
+    benchmarks = sorted(list(set(benchmarks)))
+    df = {}
+    df['Benchmarks'] = benchmarks
+    for file in sorted(processed_files):
+        all_mems = []
+        data = processed_files[file]
+        for key in benchmarks:
+            if data.get(key):
+                bench = data[key]
+                mems = []
+                for run in bench:
+                    vals = run['values']
+                    mems.extend(vals)
+                avg_mem = np.average(mems)
+                avg_mem = avg_mem/1024/1024
+                all_mems.append(round(avg_mem, 1))
+            else:
+                all_mems.append(0)
+        df[columns[file].replace('.json', '')] = all_mems
+        
+    mems_df = pd.DataFrame(df)
+    columns = ['Benchmarks', '3.9.10', 'nogil-3.9.10_0', 'nogil-3.9.10_1', '3.9.18', '3.10.13', '3.11.8', '3.12.2', '3.13.0b3']
+    mems_df = mems_df[columns]
+    # mems_df_notnull = mems_df.dropna()
+    # mems_df_notnull.reset_index(inplace=True, drop=True)
+    # mems_df = mems_df_notnull
+
+    mems = []
+    for col in mems_df.columns[1:]:
+        avg_mem = np.average(mems_df[col])
+        mems.append(avg_mem)
+
+    # plt.figure(figsize=(12, 7))
+    # labels = list(mems_df.columns)[1:]
+
+    # colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
+    # colors.reverse()
+    # for i in range(len(labels)):
+    #     plt.bar(i, mems[i], color=colors.pop())
+
+    # plt.title("Single Thread Memory Usage")
+    # plt.xlabel("Python Versions")
+    # plt.ylabel("Avg Memory Usage (MB)")
+    # ticks = [i for i in range(len(mems))]
+    # plt.xticks(ticks, labels=labels)
+    # plt.savefig(f"{dir}/images/comparison_single_thread_memoria.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+
+    for index, row in mems_df.iterrows():
+        row = list(row)
+        title = row[0]
+        results = row[1:]
+        
+        labels = list(mems_df.columns)[1:]
+        colors = ["#ff1500", "#ff9602", "#f5cc02", "#00d200", "#00c3ff", "#0022ff", "#b700ff", "#ff00ea"]
+        colors.reverse()
+        plt.figure(figsize=(10, 7))
+        for i in range(len(labels)):
+            plt.bar(i, results[i], color=colors.pop())
+        plt.title(f"Peak Memory Usage (MB): {title}")
+        plt.xlabel("Python Versions")
+        plt.ylabel("Memory Usage (MB)")
+        ticks = [i for i in range(len(mems))]
+        plt.xticks(ticks, labels=labels)
+        plt.savefig(f"{dir}/images/all_tests_new_benchmarks_memory/{title}.png", bbox_inches='tight', transparent=False, pad_inches=0.1)
+        plt.close()
+        
 def main():
     results_path = "results_to_analyse/"
     all_subdirs = [results_path+d for d in os.listdir(results_path) if os.path.isdir(results_path+d) and d!="vecchi_dati"]
@@ -289,10 +490,14 @@ def main():
     Path(f"{latest_subdir}/images").mkdir(parents=True, exist_ok=True)
     Path(f"{latest_subdir}/images/all_tests_single_thread").mkdir(parents=True, exist_ok=True)
     Path(f"{latest_subdir}/images/all_tests_single_thread_memory").mkdir(parents=True, exist_ok=True)
+    Path(f"{latest_subdir}/images/all_tests_new_benchmarks").mkdir(parents=True, exist_ok=True)
+    Path(f"{latest_subdir}/images/all_tests_new_benchmarks_memory").mkdir(parents=True, exist_ok=True)
 
-    analyse_single_thread(latest_subdir)
-    analyse_memory_single_thread(latest_subdir)
-    analyse_multi_thread(latest_subdir)
+    # analyse_single_thread(latest_subdir)
+    # analyse_memory_single_thread(latest_subdir)
+    # analyse_multi_thread(latest_subdir)
+    analyse_new_benchmarks(latest_subdir)
+    analyse_new_benchmarks_memory(latest_subdir)
 
 if __name__ == "__main__":
     main() 

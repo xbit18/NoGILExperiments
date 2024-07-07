@@ -48,7 +48,6 @@ def check_file(versions):
                 versions_json = json.dumps(versions, indent=4)
                 new_versions = versions
                 f.write(versions_json)
-            #pp(versions)
     else:
         with open(f"./versions.json","w") as f:
             versions_json = json.dumps(versions, indent=4)
@@ -317,8 +316,7 @@ def multi_thread(versions):
         message=f"Multi thread analysis for {version} started"
         send_message(message)
         print(message)
-        #send_message(f"Multi thread analysis for {version} started")
-        # Se non è nogil calcola i tempi normalmente
+
         if version == "nogil-3.9.10-1_0":
             os.environ["PYTHONGIL"] = '0'
         
@@ -329,8 +327,6 @@ def multi_thread(versions):
         times[f"{version}"] = res_time
         memories[f"{version}"] = res_mem
         save_res(version, times, memories, path)
-        
-        #send_message(f"Done")
 
         versions[version]['multi_thread'] = True
         update_versions(versions)
@@ -340,6 +336,7 @@ def multi_thread(versions):
     send_message(message)
     print(message)
 
+# Test multi thread performance with new benchmarks
 def new_benchmarks(versions):
     try:
         global date_time_str, debug, results_path
@@ -407,6 +404,7 @@ def new_benchmarks(versions):
     except Exception as e:
         print(e)
 
+# Test multi thread memory usage with new benchmarks
 def new_benchmarks_memory(versions):
     global date_time_str, debug, results_path
     path=f"{results_path}{date_time_str}/new_benchmarks_memory"

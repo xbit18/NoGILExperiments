@@ -8,6 +8,7 @@ import platform
 import aiohttp
 import asyncio
 import time
+import sys
 import requests
 
 # IMPORTANTE ESPORTARE PYTHON_GIL=0 PRIMA DI ESEGUIRE IL BENCHMARK E INCLUDERLO CON INHERIT_ENV
@@ -15,10 +16,10 @@ import requests
 def start_flask_server():
     # Start Flask server in a subprocess
     version = platform.python_version()
-    command = [f'~/.pyenv/versions/{version}/bin/python ./server.py']
+    command = [f'{sys.prefix}/bin/python ./server.py']
     
     # print(command)
-    proc = subprocess.Popen(command, cwd='new_benchmarks/bm_multiple_clients', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proc = subprocess.Popen(command, cwd='new_benchmarks/bm_multiple_clients', shell=True, env=os.environ.copy(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     return proc
 
@@ -79,21 +80,22 @@ def main():
         pass
 
 if __name__ == '__main__':
+    #print(sys.prefix)
     main()
     # while True:
     #     try:
-    #         requests.get('http://localhost:5000/python').json()
+    #         requests.get('http://localhost:5000/python')
     #     except requests.exceptions.ConnectionError:
     #         break # if server is not active start it again
 
     # proc = start_flask_server()
-    # print("Server started with PID:", proc.pid)
-    # #check if server has started
+    #print("Server started with PID:", proc.pid)
+    #check if server has started
     # while True:
     #     try:
-    #         requests.get('http://localhost:5000/python').json()
+    #         requests.get('http://localhost:5000/python')
     #         break
     #     except requests.exceptions.ConnectionError:
     #         pass
     # run_benchmark()
-    # requests.get('http://localhost:5000/shutdown')
+    # #requests.get('http://localhost:5000/shutdown')
