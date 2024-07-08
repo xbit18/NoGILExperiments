@@ -28,7 +28,7 @@ RUN pip install telegram_send
 ADD ./script.py /root
 ADD ./fib.py /root
 ADD ./telegram.conf /root
-ADD ./versions.json /root
 ADD ./new_benchmarks /root/new_benchmarks
 RUN mkdir /root/pyperf_res
+RUN mkdir /root/tests_status
 CMD ["python","-u","/root/script.py"]

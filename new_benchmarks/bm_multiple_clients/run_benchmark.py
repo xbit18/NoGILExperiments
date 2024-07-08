@@ -11,14 +11,12 @@ import time
 import sys
 import requests
 
-# IMPORTANTE ESPORTARE PYTHON_GIL=0 PRIMA DI ESEGUIRE IL BENCHMARK E INCLUDERLO CON INHERIT_ENV
+# IMPORTANT TO EXPORT PYTHON_GIL=0 BEFORE RUNNING THE BENCHMARK AND INCLUDE IT WITH --INHERIT-ENVIRON
 
 def start_flask_server():
     # Start Flask server in a subprocess
-    version = platform.python_version()
     command = [f'{sys.prefix}/bin/python ./server.py']
     
-    # print(command)
     proc = subprocess.Popen(command, cwd='new_benchmarks/bm_multiple_clients', shell=True, env=os.environ.copy(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     return proc
@@ -49,21 +47,11 @@ def run_benchmark():
     start = time.time()
     asyncio.run(simulate_clients())
     end = time.time()
-    #print(f"Handled 8 requests in {end - start:.2f} seconds")
 
 def main():
-    # Start Flask server
-    # Benchmark using pyperformance
-
-    # while True:
-    #     try:
-    #         requests.get('http://localhost:5000/python').json()
-    #     except requests.exceptions.ConnectionError:
-    #         break # if server is not active start it again
 
     proc = start_flask_server()
-    #print("Server started with PID:", proc.pid)
-    #check if server has started
+    
     while True:
         try:
             requests.get('http://localhost:5000/python')
@@ -73,29 +61,11 @@ def main():
     
     runner = pyperf.Runner()
     runner.metadata['description'] = "Benchmarking Flask server with client requests"
-    runner.bench_func('flask_server', run_benchmark)
+    runner.bench_func('multiple_benchmarks', run_benchmark)
     try:
         requests.get('http://localhost:5000/shutdown')
     except Exception:
         pass
 
 if __name__ == '__main__':
-    #print(sys.prefix)
     main()
-    # while True:
-    #     try:
-    #         requests.get('http://localhost:5000/python')
-    #     except requests.exceptions.ConnectionError:
-    #         break # if server is not active start it again
-
-    # proc = start_flask_server()
-    #print("Server started with PID:", proc.pid)
-    #check if server has started
-    # while True:
-    #     try:
-    #         requests.get('http://localhost:5000/python')
-    #         break
-    #     except requests.exceptions.ConnectionError:
-    #         pass
-    # run_benchmark()
-    # #requests.get('http://localhost:5000/shutdown')

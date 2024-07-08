@@ -3,56 +3,56 @@
         "single_thread": true,
         "single_thread_memory": true,
         "multi_thread": true,
-        "new_benchmarks": false,
-        "new_benchmarks_memory": false
+        "new_benchmarks": true,
+        "new_benchmarks_memory": true
     },
     "nogil-3.9.10-1_0": {
         "single_thread": true,
         "single_thread_memory": true,
         "multi_thread": true,
-        "new_benchmarks": false,
-        "new_benchmarks_memory": false
+        "new_benchmarks": true,
+        "new_benchmarks_memory": true
     },
     "nogil-3.9.10-1_1": {
         "single_thread": true,
         "single_thread_memory": true,
         "multi_thread": true,
-        "new_benchmarks": false,
-        "new_benchmarks_memory": false
+        "new_benchmarks": true,
+        "new_benchmarks_memory": true
     },
     "3.9.18": {
         "single_thread": true,
         "single_thread_memory": true,
         "multi_thread": true,
-        "new_benchmarks": false,
-        "new_benchmarks_memory": false
+        "new_benchmarks": true,
+        "new_benchmarks_memory": true
     },
     "3.10.13": {
         "single_thread": true,
         "single_thread_memory": true,
         "multi_thread": true,
-        "new_benchmarks": false,
-        "new_benchmarks_memory": false
+        "new_benchmarks": true,
+        "new_benchmarks_memory": true
     },
     "3.11.8": {
         "single_thread": true,
         "single_thread_memory": true,
         "multi_thread": true,
-        "new_benchmarks": false,
-        "new_benchmarks_memory": false
+        "new_benchmarks": true,
+        "new_benchmarks_memory": true
     },
     "3.12.2": {
         "single_thread": true,
         "single_thread_memory": true,
         "multi_thread": true,
-        "new_benchmarks": false,
-        "new_benchmarks_memory": false
+        "new_benchmarks": true,
+        "new_benchmarks_memory": true
     },
     "3.13.0b3": {
         "single_thread": true,
         "single_thread_memory": true,
         "multi_thread": true,
-        "new_benchmarks": false,
-        "new_benchmarks_memory": false
+        "new_benchmarks": true,
+        "new_benchmarks_memory": true
     }
 }

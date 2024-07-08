@@ -14,3 +14,4 @@ services:
       - TELEGRAM=$TELEGRAM
     volumes:
      - './pyperf_res:/root/pyperf_res'
+     - './tests_status:/root/tests_status'

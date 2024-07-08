@@ -27,15 +27,15 @@ THREADS = []
 def check_file(versions):
     if restart:
         print("Starting over. Dumping versions.json file.")
-        with open(f"./versions.json","w") as f:
+        with open(f"./tests_status/versions.json","w") as f:
             versions_json = json.dumps(versions, indent=4)
             new_versions = versions
             f.write(versions_json)
         return versions
     
     print("Checking if versions.json file exists")
-    if os.path.exists(f"./versions.json"):
-        with open(f"./versions.json","r") as f:
+    if os.path.exists(f"./tests_status/versions.json"):
+        with open(f"./tests_status/versions.json","r") as f:
             new_versions = json.load(f)
             print("File exists - Loaded")
             
@@ -44,12 +44,12 @@ def check_file(versions):
                     if val == False:
                         return new_versions
             
-            with open(f"./versions.json","w") as f:
+            with open(f"./tests_status/versions.json","w") as f:
                 versions_json = json.dumps(versions, indent=4)
                 new_versions = versions
                 f.write(versions_json)
     else:
-        with open(f"./versions.json","w") as f:
+        with open(f"./tests_status/versions.json","w") as f:
             versions_json = json.dumps(versions, indent=4)
             new_versions = versions
             f.write(versions_json)
@@ -117,7 +117,7 @@ def update_versions(versions):
     if debug:
         return
 
-    with open(f"./versions.json", "w") as f:
+    with open(f"./tests_status/versions.json", "w") as f:
         versions_json = json.dumps(versions, indent=4)
         f.write(versions_json)
 
